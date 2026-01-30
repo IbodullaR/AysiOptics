@@ -1,8 +1,11 @@
 package uz.kuponbot.kupon.controller;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import uz.kuponbot.kupon.dto.AdminStatsDto;
 import uz.kuponbot.kupon.dto.OrderDto;
 import uz.kuponbot.kupon.dto.OrderItemDto;
@@ -25,7 +29,10 @@ import uz.kuponbot.kupon.entity.Order;
 import uz.kuponbot.kupon.entity.OrderItem;
 import uz.kuponbot.kupon.entity.Product;
 import uz.kuponbot.kupon.entity.User;
+import uz.kuponbot.kupon.service.BroadcastService;
 import uz.kuponbot.kupon.service.CouponService;
+import uz.kuponbot.kupon.service.ExcelExportService;
+import uz.kuponbot.kupon.service.NotificationService;
 import uz.kuponbot.kupon.service.OrderService;
 import uz.kuponbot.kupon.service.ProductService;
 import uz.kuponbot.kupon.service.UserService;
@@ -33,12 +40,16 @@ import uz.kuponbot.kupon.service.UserService;
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
+@Slf4j
 public class AdminController {
     
     private final UserService userService;
     private final CouponService couponService;
     private final ProductService productService;
     private final OrderService orderService;
+    private final NotificationService notificationService;
+    private final ExcelExportService excelExportService;
+    private final BroadcastService broadcastService;
     
     @GetMapping("/stats")
     public ResponseEntity<AdminStatsDto> getStats() {
@@ -126,6 +137,77 @@ public class AdminController {
         return ResponseEntity.ok(convertToOrderDto(order));
     }
     
+    @PostMapping("/test-notifications")
+    public ResponseEntity<String> testNotifications() {
+        notificationService.testNotifications();
+        return ResponseEntity.ok("Test notification sent!");
+    }
+    
+    @PostMapping("/test-anniversary")
+    public ResponseEntity<String> testAnniversary() {
+        notificationService.testSixMonthAnniversary();
+        return ResponseEntity.ok("Anniversary check completed!");
+    }
+    
+    @PostMapping("/test-birthdays")
+    public ResponseEntity<String> testBirthdays() {
+        notificationService.testBirthdays();
+        return ResponseEntity.ok("Birthday check completed!");
+    }
+    
+    @PostMapping("/test-3minute")
+    public ResponseEntity<String> testThreeMinute() {
+        notificationService.testThreeMinuteRegistrations();
+        return ResponseEntity.ok("3-minute registration check completed!");
+    }
+    
+    @GetMapping("/export-users")
+    public ResponseEntity<byte[]> exportUsers() {
+        try {
+            List<User> users = userService.getAllUsers();
+            List<UserDto> userDtos = users.stream()
+                .map(this::convertToUserDto)
+                .collect(Collectors.toList());
+            
+            byte[] excelData = excelExportService.exportUsersToExcel(userDtos);
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+            headers.setContentDispositionFormData("attachment", "foydalanuvchilar.xlsx");
+            
+            return ResponseEntity.ok()
+                .headers(headers)
+                .body(excelData);
+                
+        } catch (IOException e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+    
+    @PostMapping("/broadcast")
+    public ResponseEntity<BroadcastResponse> sendBroadcast(@RequestBody BroadcastRequest request) {
+        try {
+            if (request.getMessage() == null || request.getMessage().trim().isEmpty()) {
+                return ResponseEntity.badRequest().build();
+            }
+            
+            BroadcastService.BroadcastResult result = broadcastService.sendBroadcastMessage(request.getMessage());
+            
+            BroadcastResponse response = new BroadcastResponse(
+                result.getTotalUsers(),
+                result.getSuccessCount(),
+                result.getFailureCount(),
+                result.getSuccessRate()
+            );
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            log.error("Error sending broadcast message: ", e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+    
     private UserDto convertToUserDto(User user) {
         List<Coupon> userCoupons = couponService.getUserCoupons(user);
         long activeCoupons = userCoupons.stream()
@@ -137,7 +219,9 @@ public class AdminController {
             user.getTelegramId(),
             user.getFirstName(),
             user.getLastName(),
+            user.getTelegramUsername(),
             user.getPhoneNumber(),
+            user.getBirthDate(),
             user.getState().toString(),
             user.getCreatedAt(),
             userCoupons.size(),
@@ -203,5 +287,25 @@ public class AdminController {
     @Data
     public static class UpdateOrderStatusRequest {
         private String status;
+    }
+    
+    @Data
+    public static class BroadcastRequest {
+        private String message;
+    }
+    
+    @Data
+    public static class BroadcastResponse {
+        private final int totalUsers;
+        private final int successCount;
+        private final int failureCount;
+        private final double successRate;
+        
+        public BroadcastResponse(int totalUsers, int successCount, int failureCount, double successRate) {
+            this.totalUsers = totalUsers;
+            this.successCount = successCount;
+            this.failureCount = failureCount;
+            this.successRate = successRate;
+        }
     }
 }

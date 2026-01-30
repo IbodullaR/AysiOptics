@@ -29,11 +29,16 @@ public class User {
     private Long telegramId;
     
     @Column(nullable = true)
+    private String telegramUsername; // @username
+    
+    @Column(nullable = true)
     private String phoneNumber;
     
     private String firstName;
     
     private String lastName;
+    
+    private String birthDate; // Format: DD.MM.YYYY
     
     @Enumerated(EnumType.STRING)
     private UserState state = UserState.START;
@@ -47,6 +52,8 @@ public class User {
         WAITING_CONTACT,
         WAITING_FIRST_NAME,
         WAITING_LAST_NAME,
+        WAITING_BIRTH_DATE,
+        WAITING_CHANNEL_SUBSCRIPTION,
         REGISTERED
     }
 }

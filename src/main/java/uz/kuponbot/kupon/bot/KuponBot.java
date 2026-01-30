@@ -1,16 +1,22 @@
 package uz.kuponbot.kupon.bot;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
+import org.telegram.telegrambots.meta.api.methods.groupadministration.GetChatMember;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Contact;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.chatmember.ChatMember;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
@@ -20,9 +26,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import uz.kuponbot.kupon.entity.Coupon;
 import uz.kuponbot.kupon.entity.Order;
-import uz.kuponbot.kupon.entity.OrderItem;
 import uz.kuponbot.kupon.entity.User;
+import uz.kuponbot.kupon.service.BroadcastService;
 import uz.kuponbot.kupon.service.CouponService;
+import uz.kuponbot.kupon.service.NotificationService;
 import uz.kuponbot.kupon.service.OrderService;
 import uz.kuponbot.kupon.service.UserService;
 
@@ -34,12 +41,20 @@ public class KuponBot extends TelegramLongPollingBot {
     private final UserService userService;
     private final CouponService couponService;
     private final OrderService orderService;
+    private final NotificationService notificationService;
+    private final BroadcastService broadcastService;
     
     @Value("${telegram.bot.token}")
     private String botToken;
     
     @Value("${telegram.bot.username}")
     private String botUsername;
+    
+    @Value("${telegram.channel.username}")
+    private String channelUsername;
+    
+    @Value("${telegram.channel.id}")
+    private String channelId;
     
     @Override
     public String getBotToken() {
@@ -73,16 +88,32 @@ public class KuponBot extends TelegramLongPollingBot {
         if (userOpt.isEmpty()) {
             // Yangi foydalanuvchi
             User newUser = userService.createUser(userId);
+            // Username'ni saqlash
+            if (message.getFrom().getUserName() != null) {
+                newUser.setTelegramUsername("@" + message.getFrom().getUserName());
+                userService.save(newUser);
+            }
             sendWelcomeMessage(chatId);
             return;
         }
         
         User user = userOpt.get();
         
+        // Username'ni yangilash (agar o'zgargan bo'lsa)
+        if (message.getFrom().getUserName() != null) {
+            String currentUsername = "@" + message.getFrom().getUserName();
+            if (!currentUsername.equals(user.getTelegramUsername())) {
+                user.setTelegramUsername(currentUsername);
+                userService.save(user);
+            }
+        }
+        
         switch (user.getState()) {
             case WAITING_CONTACT -> handleContactState(message, user, chatId);
             case WAITING_FIRST_NAME -> handleFirstNameState(message, user, chatId);
             case WAITING_LAST_NAME -> handleLastNameState(message, user, chatId);
+            case WAITING_BIRTH_DATE -> handleBirthDateState(message, user, chatId);
+            case WAITING_CHANNEL_SUBSCRIPTION -> handleChannelSubscriptionState(message, user, chatId);
             case REGISTERED -> handleRegisteredUserCommands(message, user, chatId);
             default -> sendWelcomeMessage(chatId);
         }
@@ -154,20 +185,111 @@ public class KuponBot extends TelegramLongPollingBot {
             String lastName = message.getText().trim();
             if (lastName.length() >= 2) {
                 user.setLastName(lastName);
+                user.setState(User.UserState.WAITING_BIRTH_DATE);
+                userService.save(user);
+                
+                sendMessage(chatId, "✅ Familiya qabul qilindi!\n\nEndi tug'ilgan sanangizni kiriting (DD.MM.YYYY formatida):\n\nMisol: 15.03.1995");
+            } else {
+                sendMessage(chatId, "❌ Familiya kamida 2 ta harfdan iborat bo'lishi kerak.");
+            }
+        } else {
+            sendMessage(chatId, "❌ Iltimos, familiyangizni matn ko'rinishida yuboring.");
+        }
+    }
+    
+    private void handleBirthDateState(Message message, User user, Long chatId) {
+        if (message.hasText()) {
+            String birthDateText = message.getText().trim();
+            
+            if (isValidBirthDate(birthDateText)) {
+                user.setBirthDate(birthDateText);
+                user.setState(User.UserState.WAITING_CHANNEL_SUBSCRIPTION);
+                userService.save(user);
+                
+                sendChannelSubscriptionMessage(chatId);
+            } else {
+                sendMessage(chatId, "❌ Noto'g'ri sana formati. Iltimos, DD.MM.YYYY formatida kiriting.\n\nMisol: 15.03.1995");
+            }
+        } else {
+            sendMessage(chatId, "❌ Iltimos, tug'ilgan sanangizni matn ko'rinishida yuboring.");
+        }
+    }
+    
+    private boolean isValidBirthDate(String dateText) {
+        try {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+            LocalDate birthDate = LocalDate.parse(dateText, formatter);
+            LocalDate now = LocalDate.now();
+            
+            // 10 yoshdan katta va 100 yoshdan kichik bo'lishi kerak
+            return birthDate.isBefore(now.minusYears(10)) && birthDate.isAfter(now.minusYears(100));
+        } catch (DateTimeParseException e) {
+            return false;
+        }
+    }
+    
+    private void sendChannelSubscriptionMessage(Long chatId) {
+        String subscriptionMessage = String.format(
+            """
+            ✅ Tug'ilgan sana qabul qilindi!
+            
+            📢 Ro'yxatdan o'tishni yakunlash uchun bizning kanalimizga obuna bo'ling:
+            
+            👇 Quyidagi havolani bosib kanalga o'ting va obuna bo'ling:
+            %s
+            
+            Obuna bo'lgandan keyin "✅ Obunani tekshirish" tugmasini bosing.
+            """,
+            "https://t.me/" + channelUsername.replace("@", "")
+        );
+        
+        SendMessage sendMessage = new SendMessage();
+        sendMessage.setChatId(chatId);
+        sendMessage.setText(subscriptionMessage);
+        sendMessage.setReplyMarkup(createChannelSubscriptionKeyboard());
+        
+        sendMessage(sendMessage);
+    }
+    
+    private ReplyKeyboardMarkup createChannelSubscriptionKeyboard() {
+        ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
+        keyboardMarkup.setResizeKeyboard(true);
+        keyboardMarkup.setOneTimeKeyboard(false);
+        
+        List<KeyboardRow> keyboard = new ArrayList<>();
+        
+        // Obunani tekshirish tugmasi
+        KeyboardRow row = new KeyboardRow();
+        row.add("✅ Obunani tekshirish");
+        
+        keyboard.add(row);
+        keyboardMarkup.setKeyboard(keyboard);
+        
+        return keyboardMarkup;
+    }
+    
+    private void handleChannelSubscriptionState(Message message, User user, Long chatId) {
+        if (message.hasText() && message.getText().equals("✅ Obunani tekshirish")) {
+            if (checkChannelSubscription(user.getTelegramId())) {
+                // Obuna tasdiqlandi - kupon yaratish
                 user.setState(User.UserState.REGISTERED);
                 userService.save(user);
                 
-                // Kupon yaratish
                 Coupon coupon = couponService.createCouponForUser(user);
                 
                 String successMessage = String.format(
                     "🎉 Tabriklaymiz! Ro'yxatdan o'tish muvaffaqiyatli yakunlandi!\n\n" +
                     "👤 Ism: %s\n" +
                     "👤 Familiya: %s\n" +
-                    "📱 Telefon: %s\n\n" +
+                    "📱 Telefon: %s\n" +
+                    "🎂 Tug'ilgan sana: %s\n\n" +
                     "🎫 Sizning kupon kodingiz: *%s*\n\n" +
                     "Bu kodni saqlang va kerak bo'lganda ishlatishingiz mumkin!",
-                    user.getFirstName(), user.getLastName(), user.getPhoneNumber(), coupon.getCode()
+                    user.getFirstName(), 
+                    user.getLastName(), 
+                    user.getPhoneNumber(),
+                    user.getBirthDate(),
+                    coupon.getCode()
                 );
                 
                 SendMessage sendMessage = new SendMessage();
@@ -178,10 +300,28 @@ public class KuponBot extends TelegramLongPollingBot {
                 
                 sendMessage(sendMessage);
             } else {
-                sendMessage(chatId, "❌ Familiya kamida 2 ta harfdan iborat bo'lishi kerak.");
+                sendMessage(chatId, "❌ Siz hali kanalga obuna bo'lmagansiz!\n\n" +
+                    "Iltimos, avval kanalga obuna bo'ling, keyin \"✅ Obunani tekshirish\" tugmasini bosing.");
             }
         } else {
-            sendMessage(chatId, "❌ Iltimos, familiyangizni matn ko'rinishida yuboring.");
+            sendMessage(chatId, "❌ Iltimos, avval kanalga obuna bo'ling va \"✅ Obunani tekshirish\" tugmasini bosing.");
+        }
+    }
+    
+    private boolean checkChannelSubscription(Long userId) {
+        try {
+            GetChatMember getChatMember = new GetChatMember();
+            getChatMember.setChatId(channelId);
+            getChatMember.setUserId(userId);
+            
+            ChatMember chatMember = execute(getChatMember);
+            String status = chatMember.getStatus();
+            
+            // Obuna bo'lgan holatlar: "member", "administrator", "creator"
+            return "member".equals(status) || "administrator".equals(status) || "creator".equals(status);
+        } catch (TelegramApiException e) {
+            log.error("Error checking channel subscription for user {}: ", userId, e);
+            return false;
         }
     }
     
@@ -221,6 +361,11 @@ public class KuponBot extends TelegramLongPollingBot {
             case "/start" -> sendRegisteredUserWelcome(user, chatId);
             case "/admin" -> handleAdminCommand(user, chatId);
             case "/myid" -> sendMessage(chatId, "🆔 Sizning Telegram ID: " + user.getTelegramId());
+            case "/testnotify" -> handleTestNotificationCommand(user, chatId);
+            case "/testanniversary" -> handleTestAnniversaryCommand(user, chatId);
+            case "/testbirthday" -> handleTestBirthdayCommand(user, chatId);
+            case "/test3minute" -> handleTest3MinuteCommand(user, chatId);
+            case "/broadcast" -> handleBroadcastCommand(message, user, chatId);
             default -> sendMessage(chatId, "❌ Noma'lum buyruq. Iltimos, menyudan tanlang.");
         }
     }
@@ -276,12 +421,16 @@ public class KuponBot extends TelegramLongPollingBot {
             "📝 Ism: %s\n" +
             "📝 Familiya: %s\n" +
             "📱 Telefon: %s\n" +
+            "👤 Username: %s\n" +
+            "🎂 Tug'ilgan sana: %s\n" +
             "🎫 Jami kuponlar: %d\n" +
             "✅ Faol kuponlar: %d\n" +
             "📅 Ro'yxatdan o'tgan: %s",
             user.getFirstName(),
             user.getLastName(),
             user.getPhoneNumber(),
+            user.getTelegramUsername() != null ? user.getTelegramUsername() : "Username yo'q",
+            user.getBirthDate() != null ? user.getBirthDate() : "Kiritilmagan",
             userCoupons.size(),
             activeCoupons,
             user.getCreatedAt().toLocalDate()
@@ -439,6 +588,126 @@ public class KuponBot extends TelegramLongPollingBot {
             "Admin: @IbodullaR";
         
         sendMessage(chatId, adminMessage);
+    }
+    
+    private void handleTestNotificationCommand(User user, Long chatId) {
+        // Admin huquqlarini tekshirish
+        Long adminTelegramId = 1807166165L;
+        
+        if (!user.getTelegramId().equals(adminTelegramId)) {
+            sendMessage(chatId, "❌ Sizda admin huquqlari yo'q.");
+            return;
+        }
+        
+        // Test notification yuborish
+        notificationService.testNotifications();
+        sendMessage(chatId, "✅ Test xabar yuborildi!");
+    }
+    
+    private void handleTestAnniversaryCommand(User user, Long chatId) {
+        // Admin huquqlarini tekshirish
+        Long adminTelegramId = 1807166165L;
+        
+        if (!user.getTelegramId().equals(adminTelegramId)) {
+            sendMessage(chatId, "❌ Sizda admin huquqlari yo'q.");
+            return;
+        }
+        
+        // 6 oylik yubiley test
+        notificationService.testSixMonthAnniversary();
+        sendMessage(chatId, "✅ 6 oylik yubiley test bajarildi!");
+    }
+    
+    private void handleTestBirthdayCommand(User user, Long chatId) {
+        // Admin huquqlarini tekshirish
+        Long adminTelegramId = 1807166165L;
+        
+        if (!user.getTelegramId().equals(adminTelegramId)) {
+            sendMessage(chatId, "❌ Sizda admin huquqlari yo'q.");
+            return;
+        }
+        
+        // Tug'ilgan kun test
+        notificationService.testBirthdays();
+        sendMessage(chatId, "✅ Tug'ilgan kun test bajarildi!");
+    }
+    
+    private void handleTest3MinuteCommand(User user, Long chatId) {
+        // Admin huquqlarini tekshirish
+        Long adminTelegramId = 1807166165L;
+        
+        if (!user.getTelegramId().equals(adminTelegramId)) {
+            sendMessage(chatId, "❌ Sizda admin huquqlari yo'q.");
+            return;
+        }
+        
+        // 3 daqiqa test
+        notificationService.testThreeMinuteRegistrations();
+        sendMessage(chatId, "✅ 3 daqiqa test bajarildi!");
+    }
+    
+    private void handleBroadcastCommand(Message message, User user, Long chatId) {
+        // Admin huquqlarini tekshirish
+        Long adminTelegramId = 1807166165L;
+        
+        if (!user.getTelegramId().equals(adminTelegramId)) {
+            sendMessage(chatId, "❌ Sizda admin huquqlari yo'q.");
+            return;
+        }
+        
+        String text = message.getText();
+        String[] parts = text.split(" ", 2);
+        
+        if (parts.length < 2) {
+            sendMessage(chatId, """
+                📢 Broadcast xabar yuborish:
+                
+                Foydalanish: /broadcast [xabar matni]
+                
+                Misol: /broadcast Assalomu alaykum! Yangi mahsulotlar keldi!
+                
+                ⚠️ Bu xabar barcha ro'yxatdan o'tgan foydalanuvchilarga yuboriladi.
+                """);
+            return;
+        }
+        
+        String broadcastMessage = parts[1].trim();
+        
+        if (broadcastMessage.isEmpty()) {
+            sendMessage(chatId, "❌ Xabar matni bo'sh bo'lishi mumkin emas.");
+            return;
+        }
+        
+        sendMessage(chatId, "📤 Xabar barcha foydalanuvchilarga yuborilmoqda...");
+        
+        // Async ravishda yuborish
+        CompletableFuture.runAsync(() -> {
+            try {
+                BroadcastService.BroadcastResult result = broadcastService.sendBroadcastMessage(broadcastMessage);
+                
+                String resultMessage = String.format(
+                    """
+                    ✅ Broadcast xabar yuborildi!
+                    
+                    📊 Natijalar:
+                    👥 Jami foydalanuvchilar: %d
+                    ✅ Muvaffaqiyatli: %d
+                    ❌ Xatolik: %d
+                    📈 Muvaffaqiyat darajasi: %.1f%%
+                    """,
+                    result.getTotalUsers(),
+                    result.getSuccessCount(),
+                    result.getFailureCount(),
+                    result.getSuccessRate()
+                );
+                
+                sendMessage(chatId, resultMessage);
+                
+            } catch (Exception e) {
+                log.error("Error in broadcast command: ", e);
+                sendMessage(chatId, "❌ Xabar yuborishda xatolik yuz berdi: " + e.getMessage());
+            }
+        });
     }
     
     private void sendMessage(Long chatId, String text) {

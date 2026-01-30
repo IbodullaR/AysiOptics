@@ -1,0 +1,99 @@
+package uz.kuponbot.kupon.service;
+
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.springframework.context.ApplicationContext;
+import org.springframework.stereotype.Service;
+import org.telegram.telegrambots.bots.TelegramLongPollingBot;
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import uz.kuponbot.kupon.entity.User;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class BroadcastService {
+    
+    private final UserService userService;
+    private final ApplicationContext applicationContext;
+    
+    public BroadcastResult sendBroadcastMessage(String message) {
+        log.info("Starting broadcast message to all users");
+        
+        List<User> allUsers = userService.getAllUsers();
+        List<User> registeredUsers = allUsers.stream()
+            .filter(user -> user.getState() == User.UserState.REGISTERED)
+            .toList();
+        
+        if (registeredUsers.isEmpty()) {
+            log.warn("No registered users found for broadcast");
+            return new BroadcastResult(0, 0, 0);
+        }
+        
+        TelegramLongPollingBot bot = applicationContext.getBean("kuponBot", TelegramLongPollingBot.class);
+        
+        AtomicInteger successCount = new AtomicInteger(0);
+        AtomicInteger failureCount = new AtomicInteger(0);
+        
+        // Parallel ravishda xabar yuborish (tezroq bo'lishi uchun)
+        List<CompletableFuture<Void>> futures = registeredUsers.stream()
+            .map(user -> CompletableFuture.runAsync(() -> {
+                try {
+                    SendMessage sendMessage = new SendMessage();
+                    sendMessage.setChatId(user.getTelegramId());
+                    sendMessage.setText(message);
+                    
+                    bot.execute(sendMessage);
+                    successCount.incrementAndGet();
+                    
+                    // Rate limiting uchun kichik kutish
+                    Thread.sleep(50); // 50ms kutish
+                    
+                } catch (TelegramApiException e) {
+                    failureCount.incrementAndGet();
+                    log.error("Failed to send broadcast message to user {}: {}", 
+                        user.getTelegramId(), e.getMessage());
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    failureCount.incrementAndGet();
+                    log.error("Interrupted while sending to user {}", user.getTelegramId());
+                }
+            }))
+            .toList();
+        
+        // Barcha xabarlar yuborilishini kutish
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+        
+        int total = registeredUsers.size();
+        int success = successCount.get();
+        int failure = failureCount.get();
+        
+        log.info("Broadcast completed: {} total, {} success, {} failed", total, success, failure);
+        
+        return new BroadcastResult(total, success, failure);
+    }
+    
+    public static class BroadcastResult {
+        private final int totalUsers;
+        private final int successCount;
+        private final int failureCount;
+        
+        public BroadcastResult(int totalUsers, int successCount, int failureCount) {
+            this.totalUsers = totalUsers;
+            this.successCount = successCount;
+            this.failureCount = failureCount;
+        }
+        
+        public int getTotalUsers() { return totalUsers; }
+        public int getSuccessCount() { return successCount; }
+        public int getFailureCount() { return failureCount; }
+        public double getSuccessRate() { 
+            return totalUsers > 0 ? (double) successCount / totalUsers * 100 : 0; 
+        }
+    }
+}

@@ -265,6 +265,9 @@
         
         <div class="section">
             <h2 class="section-title">👥 Foydalanuvchilar</h2>
+            <div style="margin-bottom: 20px;">
+                <button class="btn" onclick="exportUsers()" style="background: #28a745;">📊 Excel yuklab olish</button>
+            </div>
             <input type="text" class="search-box" id="userSearch" placeholder="Foydalanuvchi qidirish...">
             <div id="usersLoading" class="loading">Ma'lumotlar yuklanmoqda...</div>
             <table class="table" id="usersTable" style="display: none;">
@@ -273,7 +276,9 @@
                         <th>ID</th>
                         <th>Ism</th>
                         <th>Familiya</th>
+                        <th>Username</th>
                         <th>Telefon</th>
+                        <th>Tug'ilgan kun</th>
                         <th>Holat</th>
                         <th>Ro'yxatdan o'tgan</th>
                     </tr>
@@ -281,6 +286,34 @@
                 <tbody id="usersTableBody">
                 </tbody>
             </table>
+        </div>
+        
+        <div class="section">
+            <h2 class="section-title">📢 Barcha foydalanuvchilarga xabar</h2>
+            <div style="margin-bottom: 20px;">
+                <textarea id="broadcastMessage" placeholder="Barcha foydalanuvchilarga yuboriladigan xabar..." 
+                    style="width: 100%; height: 120px; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; resize: vertical;"></textarea>
+                <div style="margin-top: 10px;">
+                    <button class="btn" onclick="sendBroadcast()" style="background: #dc3545;">📢 Barcha foydalanuvchilarga yuborish</button>
+                    <span id="broadcastStatus" style="margin-left: 15px; font-weight: bold;"></span>
+                </div>
+                <p style="margin-top: 10px; color: #666; font-size: 14px;">
+                    ⚠️ Bu xabar barcha ro'yxatdan o'tgan foydalanuvchilarga yuboriladi. Ehtiyot bo'ling!
+                </p>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2 class="section-title">🔔 Bildirishnomalar</h2>
+            <div style="margin-bottom: 20px;">
+                <button class="btn" onclick="testNotifications()" style="background: #17a2b8;">📧 Test xabar yuborish</button>
+                <button class="btn" onclick="testAnniversary()" style="background: #28a745; margin-left: 10px;">🎉 6 oylik yubiley test</button>
+                <button class="btn" onclick="testBirthdays()" style="background: #ffc107; margin-left: 10px;">🎂 Tug'ilgan kun test</button>
+                <button class="btn" onclick="testThreeMinute()" style="background: #dc3545; margin-left: 10px;">⏰ 3 daqiqa test</button>
+                <p style="margin-top: 10px; color: #666; font-size: 14px;">
+                    Bu tugmalar admin'ga test xabarlar yuboradi. Avtomatik xabarlar har kuni soat 09:00 (6 oylik yubiley) va 10:00 (tug'ilgan kunlar) da yuboriladi. 3 daqiqa test har daqiqada tekshiriladi.
+                </p>
+            </div>
         </div>
     </div>
 
@@ -524,7 +557,9 @@
                         <td>${user.telegramId}</td>
                         <td>${user.firstName || '-'}</td>
                         <td>${user.lastName || '-'}</td>
+                        <td>${user.telegramUsername || 'Username yo\'q'}</td>
                         <td>${user.phoneNumber || '-'}</td>
+                        <td>${user.birthDate || 'Kiritilmagan'}</td>
                         <td>${user.state}</td>
                         <td>${new Date(user.createdAt).toLocaleDateString('uz-UZ')}</td>
                     `;
@@ -594,6 +629,170 @@
                 row.style.display = text.includes(searchTerm) ? '' : 'none';
             });
         });
+        
+        // Test notifications function
+        async function testNotifications() {
+            try {
+                const response = await fetch(`${API_BASE}/test-notifications`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    alert('✅ Test xabar muvaffaqiyatli yuborildi!');
+                } else {
+                    alert('❌ Xatolik yuz berdi: ' + response.statusText);
+                }
+            } catch (error) {
+                console.error('Error testing notifications:', error);
+                alert('❌ Xatolik yuz berdi: ' + error.message);
+            }
+        }
+        
+        // Test anniversary function
+        async function testAnniversary() {
+            try {
+                const response = await fetch(`${API_BASE}/test-anniversary`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    alert('✅ 6 oylik yubiley test muvaffaqiyatli bajarildi!');
+                } else {
+                    alert('❌ Xatolik yuz berdi: ' + response.statusText);
+                }
+            } catch (error) {
+                console.error('Error testing anniversary:', error);
+                alert('❌ Xatolik yuz berdi: ' + error.message);
+            }
+        }
+        
+        // Test birthdays function
+        async function testBirthdays() {
+            try {
+                const response = await fetch(`${API_BASE}/test-birthdays`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    alert('✅ Tug\'ilgan kun test muvaffaqiyatli bajarildi!');
+                } else {
+                    alert('❌ Xatolik yuz berdi: ' + response.statusText);
+                }
+            } catch (error) {
+                console.error('Error testing birthdays:', error);
+                alert('❌ Xatolik yuz berdi: ' + error.message);
+            }
+        }
+        
+        // Test 3-minute registration function
+        async function testThreeMinute() {
+            try {
+                const response = await fetch(`${API_BASE}/test-3minute`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    alert('✅ 3 daqiqa test muvaffaqiyatli bajarildi!');
+                } else {
+                    alert('❌ Xatolik yuz berdi: ' + response.statusText);
+                }
+            } catch (error) {
+                console.error('Error testing 3-minute:', error);
+                alert('❌ Xatolik yuz berdi: ' + error.message);
+            }
+        }
+        
+        // Export users to Excel
+        async function exportUsers() {
+            try {
+                const response = await fetch(`${API_BASE}/export-users`, {
+                    method: 'GET'
+                });
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'foydalanuvchilar.xlsx';
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    
+                    alert('✅ Excel fayl muvaffaqiyatli yuklab olindi!');
+                } else {
+                    alert('❌ Xatolik yuz berdi: ' + response.statusText);
+                }
+            } catch (error) {
+                console.error('Error exporting users:', error);
+                alert('❌ Xatolik yuz berdi: ' + error.message);
+            }
+        }
+        
+        // Send broadcast message
+        async function sendBroadcast() {
+            const message = document.getElementById('broadcastMessage').value.trim();
+            const statusElement = document.getElementById('broadcastStatus');
+            
+            if (!message) {
+                alert('❌ Iltimos, xabar matnini kiriting!');
+                return;
+            }
+            
+            if (!confirm('Haqiqatan ham barcha foydalanuvchilarga xabar yuborishni xohlaysizmi?')) {
+                return;
+            }
+            
+            try {
+                statusElement.textContent = '📤 Yuborilmoqda...';
+                statusElement.style.color = '#007bff';
+                
+                const response = await fetch(`${API_BASE}/broadcast`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ message: message })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    statusElement.innerHTML = `
+                        ✅ Yuborildi: ${result.successCount}/${result.totalUsers} 
+                        (${result.successRate.toFixed(1)}%)
+                        ${result.failureCount > 0 ? `❌ Xatolik: ${result.failureCount}` : ''}
+                    `;
+                    statusElement.style.color = '#28a745';
+                    
+                    // Clear message after successful send
+                    document.getElementById('broadcastMessage').value = '';
+                    
+                    alert(`✅ Xabar muvaffaqiyatli yuborildi!\n\nJami: ${result.totalUsers}\nMuvaffaqiyatli: ${result.successCount}\nXatolik: ${result.failureCount}`);
+                } else {
+                    statusElement.textContent = '❌ Xatolik yuz berdi';
+                    statusElement.style.color = '#dc3545';
+                    alert('❌ Xatolik yuz berdi: ' + response.statusText);
+                }
+            } catch (error) {
+                console.error('Error sending broadcast:', error);
+                statusElement.textContent = '❌ Xatolik yuz berdi';
+                statusElement.style.color = '#dc3545';
+                alert('❌ Xatolik yuz berdi: ' + error.message);
+            }
+        }
     </script>
 </body>
 </html>
