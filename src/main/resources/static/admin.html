@@ -266,7 +266,18 @@
         <div class="section">
             <h2 class="section-title">👥 Foydalanuvchilar</h2>
             <div style="margin-bottom: 20px;">
-                <button class="btn" onclick="exportUsers()" style="background: #28a745;">📊 Excel yuklab olish</button>
+                <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                    <button class="btn" onclick="exportUsers('all')" style="background: #28a745;">📊 Barcha foydalanuvchilar</button>
+                    <button class="btn" onclick="exportUsers('today')" style="background: #17a2b8;">📅 Bugungi foydalanuvchilar</button>
+                    <button class="btn" onclick="exportUsers('this_month')" style="background: #ffc107; color: #000;">📆 Oylik foydalanuvchilar</button>
+                    <button class="btn" onclick="exportUsers('this_year')" style="background: #6f42c1;">📈 Yillik foydalanuvchilar</button>
+                </div>
+                <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                    <button class="btn" onclick="loadUsers('all')" style="background: #6c757d;">👁️ Barchasini ko'rish</button>
+                    <button class="btn" onclick="loadUsers('today')" style="background: #6c757d;">👁️ Bugungilarni ko'rish</button>
+                    <button class="btn" onclick="loadUsers('this_month')" style="background: #6c757d;">👁️ Oyliklarni ko'rish</button>
+                    <button class="btn" onclick="loadUsers('this_year')" style="background: #6c757d;">👁️ Yilliklarni ko'rish</button>
+                </div>
             </div>
             <input type="text" class="search-box" id="userSearch" placeholder="Foydalanuvchi qidirish...">
             <div id="usersLoading" class="loading">Ma'lumotlar yuklanmoqda...</div>
@@ -543,31 +554,18 @@
         }
         
         // Load users
-        async function loadUsers() {
+        async function loadUsers(filter = 'all') {
             try {
-                const response = await fetch(`${API_BASE}/users`);
+                let url = `${API_BASE}/users`;
+                if (filter !== 'all') {
+                    url = `${API_BASE}/users-filtered?filter=${filter}`;
+                }
+                
+                const response = await fetch(url);
                 const users = await response.json();
                 
-                const tbody = document.getElementById('usersTableBody');
-                tbody.innerHTML = '';
+                displayUsers(users, filter);
                 
-                users.forEach(user => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${user.telegramId}</td>
-                        <td>${user.firstName || '-'}</td>
-                        <td>${user.lastName || '-'}</td>
-                        <td>${user.telegramUsername || 'Username yo\'q'}</td>
-                        <td>${user.phoneNumber || '-'}</td>
-                        <td>${user.birthDate || 'Kiritilmagan'}</td>
-                        <td>${user.state}</td>
-                        <td>${new Date(user.createdAt).toLocaleDateString('uz-UZ')}</td>
-                    `;
-                    tbody.appendChild(row);
-                });
-                
-                document.getElementById('usersLoading').style.display = 'none';
-                document.getElementById('usersTable').style.display = 'table';
             } catch (error) {
                 console.error('Error loading users:', error);
                 document.getElementById('usersLoading').textContent = 'Xatolik yuz berdi';
@@ -714,25 +712,33 @@
             }
         }
         
-        // Export users to Excel
-        async function exportUsers() {
+        // Export users to Excel with filter
+        async function exportUsers(filter = 'all') {
             try {
-                const response = await fetch(`${API_BASE}/export-users`, {
+                let url = `${API_BASE}/export-users`;
+                let fileName = 'foydalanuvchilar.xlsx';
+                
+                if (filter !== 'all') {
+                    url = `${API_BASE}/export-users-filtered?filter=${filter}`;
+                    fileName = getFilterFileName(filter);
+                }
+                
+                const response = await fetch(url, {
                     method: 'GET'
                 });
                 
                 if (response.ok) {
                     const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
+                    const downloadUrl = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'foydalanuvchilar.xlsx';
+                    a.href = downloadUrl;
+                    a.download = fileName;
                     document.body.appendChild(a);
                     a.click();
-                    window.URL.revokeObjectURL(url);
+                    window.URL.revokeObjectURL(downloadUrl);
                     document.body.removeChild(a);
                     
-                    alert('✅ Excel fayl muvaffaqiyatli yuklab olindi!');
+                    alert(`✅ ${getFilterDisplayName(filter)} Excel fayl muvaffaqiyatli yuklab olindi!`);
                 } else {
                     alert('❌ Xatolik yuz berdi: ' + response.statusText);
                 }
@@ -740,6 +746,70 @@
                 console.error('Error exporting users:', error);
                 alert('❌ Xatolik yuz berdi: ' + error.message);
             }
+        }
+        
+        function getFilterFileName(filter) {
+            switch(filter) {
+                case 'today': return 'bugungi-foydalanuvchilar.xlsx';
+                case 'this_month': return 'oylik-foydalanuvchilar.xlsx';
+                case 'this_year': return 'yillik-foydalanuvchilar.xlsx';
+                default: return 'foydalanuvchilar.xlsx';
+            }
+        }
+        
+        function getFilterDisplayName(filter) {
+            switch(filter) {
+                case 'today': return 'Bugungi foydalanuvchilar';
+                case 'this_month': return 'Oylik foydalanuvchilar';
+                case 'this_year': return 'Yillik foydalanuvchilar';
+                default: return 'Barcha foydalanuvchilar';
+            }
+        }
+        
+        // Load users with filter
+        async function loadUsers(filter = 'all') {
+            try {
+                let url = `${API_BASE}/users`;
+                if (filter !== 'all') {
+                    url = `${API_BASE}/users-filtered?filter=${filter}`;
+                }
+                
+                const response = await fetch(url);
+                const users = await response.json();
+                
+                displayUsers(users, filter);
+                
+            } catch (error) {
+                console.error('Error loading users:', error);
+                document.getElementById('usersLoading').textContent = 'Xatolik yuz berdi';
+            }
+        }
+        
+        function displayUsers(users, filter) {
+            const tbody = document.getElementById('usersTableBody');
+            tbody.innerHTML = '';
+            
+            // Update section title with filter info
+            const sectionTitle = document.querySelector('.section:last-of-type .section-title');
+            sectionTitle.textContent = `👥 Foydalanuvchilar (${getFilterDisplayName(filter)}: ${users.length} ta)`;
+            
+            users.forEach(user => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${user.telegramId}</td>
+                    <td>${user.firstName || '-'}</td>
+                    <td>${user.lastName || '-'}</td>
+                    <td>${user.telegramUsername || 'Username yo\'q'}</td>
+                    <td>${user.phoneNumber || '-'}</td>
+                    <td>${user.birthDate || 'Kiritilmagan'}</td>
+                    <td>${user.state}</td>
+                    <td>${new Date(user.createdAt).toLocaleDateString('uz-UZ')}</td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            document.getElementById('usersLoading').style.display = 'none';
+            document.getElementById('usersTable').style.display = 'table';
         }
         
         // Send broadcast message

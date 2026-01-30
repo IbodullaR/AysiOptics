@@ -63,7 +63,7 @@
             }
             
             try {
-                const response = await fetch('/api/admin/products', {
+                const response = await fetch('http://localhost:8080/api/admin/products', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -100,7 +100,7 @@
         // Test API connection
         async function testAPI() {
             try {
-                const response = await fetch('/api/admin/stats');
+                const response = await fetch('http://localhost:8080/api/admin/stats');
                 const stats = await response.json();
                 console.log('API test successful:', stats);
             } catch (error) {

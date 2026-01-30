@@ -1,13 +1,12 @@
 package uz.kuponbot.kupon.config;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
-import uz.kuponbot.kupon.entity.Product;
+
+import lombok.RequiredArgsConstructor;
 import uz.kuponbot.kupon.entity.User;
 import uz.kuponbot.kupon.service.ProductService;
 import uz.kuponbot.kupon.service.UserService;
-import java.math.BigDecimal;
 
 @Component
 @RequiredArgsConstructor
@@ -23,10 +22,8 @@ public class DataInitializer implements CommandLineRunner {
             createSampleProducts();
         }
         
-        // Create test user if not exists
-        if (userService.findByTelegramId(1807166165L).isEmpty()) {
-            createTestUser();
-        }
+        // Create admin users if not exist
+        createAdminUsers();
     }
     
     private void createSampleProducts() {
@@ -74,15 +71,35 @@ public class DataInitializer implements CommandLineRunner {
         System.out.println("✅ Sample products created successfully!");
     }
     
-    private void createTestUser() {
-        User testUser = new User();
-        testUser.setTelegramId(1807166165L);
-        testUser.setFirstName("Test");
-        testUser.setLastName("User");
-        testUser.setPhoneNumber("+998901234567");
-        testUser.setState(User.UserState.REGISTERED);
+    private void createAdminUsers() {
+        // Admin 1: IbodullaR
+        if (userService.findByTelegramId(1807166165L).isEmpty()) {
+            User admin1 = new User();
+            admin1.setTelegramId(1807166165L);
+            admin1.setFirstName("Ibodulla");
+            admin1.setLastName("Rahimov");
+            admin1.setTelegramUsername("@IbodullaR");
+            admin1.setPhoneNumber("+998901234567");
+            admin1.setBirthDate("15.03.1995");
+            admin1.setState(User.UserState.REGISTERED);
+            
+            userService.save(admin1);
+            System.out.println("✅ Admin 1 (IbodullaR) created successfully!");
+        }
         
-        userService.save(testUser);
-        System.out.println("✅ Test user created successfully!");
+        // Admin 2: Second Admin
+        if (userService.findByTelegramId(987654321L).isEmpty()) {
+            User admin2 = new User();
+            admin2.setTelegramId(987654321L);
+            admin2.setFirstName("Admin");
+            admin2.setLastName("Manager");
+            admin2.setTelegramUsername("@AdminManager");
+            admin2.setPhoneNumber("+998909876543");
+            admin2.setBirthDate("20.05.1990");
+            admin2.setState(User.UserState.REGISTERED);
+            
+            userService.save(admin2);
+            System.out.println("✅ Admin 2 (AdminManager) created successfully!");
+        }
     }
 }

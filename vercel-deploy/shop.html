@@ -5,12 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ko'zoynak Do'koni</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script>
-        // API Configuration
-        const API_BASE_URL = window.location.hostname === 'localhost' ? 
-            'http://localhost:8080' : 
-            'https://your-backend-url.herokuapp.com'; // Replace with actual backend URL
-    </script>
     <style>
         * {
             margin: 0;
@@ -209,10 +203,10 @@
             loadProducts();
         });
         
-        // Load products from API
+        // Load products from API (Updated: 2026-01-30 23:20)
         async function loadProducts() {
             try {
-                const response = await fetch(`${API_BASE_URL}/api/shop/products`);
+                const response = await fetch('http://localhost:8080/api/shop/products');
                 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -541,8 +535,8 @@
             };
             
             try {
-                // Send order to backend
-                const response = await fetch(`${API_BASE_URL}/api/shop/orders`, {
+                // Send order to backend (Updated: 2026-01-30 23:20)
+                const response = await fetch('http://localhost:8080/api/shop/orders', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'

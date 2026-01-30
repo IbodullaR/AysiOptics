@@ -432,7 +432,7 @@ public class KuponBot extends TelegramLongPollingBot {
             user.getTelegramUsername() != null ? user.getTelegramUsername() : "Username yo'q",
             user.getBirthDate() != null ? user.getBirthDate() : "Kiritilmagan",
             userCoupons.size(),
-            activeCoupons,
+            (int) activeCoupons,  // long'ni int'ga cast qilish
             user.getCreatedAt().toLocalDate()
         );
         
@@ -570,10 +570,18 @@ public class KuponBot extends TelegramLongPollingBot {
     }
     
     private void handleAdminCommand(User user, Long chatId) {
-        // Admin Telegram ID'larini tekshirish (sizning ID'ingizni qo'yish kerak)
-        Long adminTelegramId = 1807166165L; // Sizning haqiqiy Telegram ID'ingiz
+        // Admin Telegram ID'larini tekshirish
+        Long[] adminTelegramIds = {1807166165L, 7543576887L}; // IbodullaR va DeveloperAdmin23
         
-        if (!user.getTelegramId().equals(adminTelegramId)) {
+        boolean isAdmin = false;
+        for (Long adminId : adminTelegramIds) {
+            if (user.getTelegramId().equals(adminId)) {
+                isAdmin = true;
+                break;
+            }
+        }
+        
+        if (!isAdmin) {
             sendMessage(chatId, "❌ Sizda admin huquqlari yo'q.");
             return;
         }
@@ -585,16 +593,24 @@ public class KuponBot extends TelegramLongPollingBot {
             "📊 Tezkor statistika:\n" +
             "👥 Jami foydalanuvchilar: " + userService.getTotalUsersCount() + "\n" +
             "🎫 Jami kuponlar: " + couponService.getTotalCouponsCount() + "\n\n" +
-            "Admin: @IbodullaR";
+            "Adminlar: @IbodullaR, @developeradmin23";
         
         sendMessage(chatId, adminMessage);
     }
     
     private void handleTestNotificationCommand(User user, Long chatId) {
         // Admin huquqlarini tekshirish
-        Long adminTelegramId = 1807166165L;
+        Long[] adminTelegramIds = {1807166165L, 7543576887L};
         
-        if (!user.getTelegramId().equals(adminTelegramId)) {
+        boolean isAdmin = false;
+        for (Long adminId : adminTelegramIds) {
+            if (user.getTelegramId().equals(adminId)) {
+                isAdmin = true;
+                break;
+            }
+        }
+        
+        if (!isAdmin) {
             sendMessage(chatId, "❌ Sizda admin huquqlari yo'q.");
             return;
         }
@@ -606,9 +622,17 @@ public class KuponBot extends TelegramLongPollingBot {
     
     private void handleTestAnniversaryCommand(User user, Long chatId) {
         // Admin huquqlarini tekshirish
-        Long adminTelegramId = 1807166165L;
+        Long[] adminTelegramIds = {1807166165L, 7543576887L};
         
-        if (!user.getTelegramId().equals(adminTelegramId)) {
+        boolean isAdmin = false;
+        for (Long adminId : adminTelegramIds) {
+            if (user.getTelegramId().equals(adminId)) {
+                isAdmin = true;
+                break;
+            }
+        }
+        
+        if (!isAdmin) {
             sendMessage(chatId, "❌ Sizda admin huquqlari yo'q.");
             return;
         }
@@ -620,9 +644,17 @@ public class KuponBot extends TelegramLongPollingBot {
     
     private void handleTestBirthdayCommand(User user, Long chatId) {
         // Admin huquqlarini tekshirish
-        Long adminTelegramId = 1807166165L;
+        Long[] adminTelegramIds = {1807166165L, 7543576887L};
         
-        if (!user.getTelegramId().equals(adminTelegramId)) {
+        boolean isAdmin = false;
+        for (Long adminId : adminTelegramIds) {
+            if (user.getTelegramId().equals(adminId)) {
+                isAdmin = true;
+                break;
+            }
+        }
+        
+        if (!isAdmin) {
             sendMessage(chatId, "❌ Sizda admin huquqlari yo'q.");
             return;
         }
@@ -634,9 +666,17 @@ public class KuponBot extends TelegramLongPollingBot {
     
     private void handleTest3MinuteCommand(User user, Long chatId) {
         // Admin huquqlarini tekshirish
-        Long adminTelegramId = 1807166165L;
+        Long[] adminTelegramIds = {1807166165L, 7543576887L};
         
-        if (!user.getTelegramId().equals(adminTelegramId)) {
+        boolean isAdmin = false;
+        for (Long adminId : adminTelegramIds) {
+            if (user.getTelegramId().equals(adminId)) {
+                isAdmin = true;
+                break;
+            }
+        }
+        
+        if (!isAdmin) {
             sendMessage(chatId, "❌ Sizda admin huquqlari yo'q.");
             return;
         }
@@ -648,9 +688,17 @@ public class KuponBot extends TelegramLongPollingBot {
     
     private void handleBroadcastCommand(Message message, User user, Long chatId) {
         // Admin huquqlarini tekshirish
-        Long adminTelegramId = 1807166165L;
+        Long[] adminTelegramIds = {1807166165L, 7543576887L};
         
-        if (!user.getTelegramId().equals(adminTelegramId)) {
+        boolean isAdmin = false;
+        for (Long adminId : adminTelegramIds) {
+            if (user.getTelegramId().equals(adminId)) {
+                isAdmin = true;
+                break;
+            }
+        }
+        
+        if (!isAdmin) {
             sendMessage(chatId, "❌ Sizda admin huquqlari yo'q.");
             return;
         }

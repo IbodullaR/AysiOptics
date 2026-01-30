@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import lombok.Data;
@@ -88,6 +89,16 @@ public class AdminController {
         return ResponseEntity.ok(userDtos);
     }
     
+    @GetMapping("/users-filtered")
+    public ResponseEntity<List<UserDto>> getFilteredUsers(@RequestParam String filter) {
+        List<User> users = userService.getUsersByDateFilter(filter);
+        List<UserDto> userDtos = users.stream()
+            .map(this::convertToUserDto)
+            .collect(Collectors.toList());
+        
+        return ResponseEntity.ok(userDtos);
+    }
+    
     @GetMapping("/products")
     public ResponseEntity<List<ProductDto>> getAllProducts() {
         List<Product> products = productService.getAllProducts();
@@ -100,15 +111,27 @@ public class AdminController {
     
     @PostMapping("/products")
     public ResponseEntity<ProductDto> createProduct(@RequestBody CreateProductRequest request) {
-        Product product = productService.createProduct(
-            request.getName(),
-            request.getDescription(),
-            request.getPrice(),
-            request.getImageUrl(),
-            request.getStockQuantity()
-        );
+        log.info("=== Create Product Request ===");
+        log.info("Name: {}", request.getName());
+        log.info("Description: {}", request.getDescription());
+        log.info("Price: {}", request.getPrice());
+        log.info("Stock: {}", request.getStockQuantity());
         
-        return ResponseEntity.ok(convertToProductDto(product));
+        try {
+            Product product = productService.createProduct(
+                request.getName(),
+                request.getDescription(),
+                request.getPrice(),
+                request.getImageUrl(),
+                request.getStockQuantity()
+            );
+            
+            log.info("Product created successfully with ID: {}", product.getId());
+            return ResponseEntity.ok(convertToProductDto(product));
+        } catch (Exception e) {
+            log.error("Error creating product: ", e);
+            throw e;
+        }
     }
     
     @DeleteMapping("/products/{id}")
@@ -182,6 +205,39 @@ public class AdminController {
         } catch (IOException e) {
             return ResponseEntity.internalServerError().build();
         }
+    }
+    
+    @GetMapping("/export-users-filtered")
+    public ResponseEntity<byte[]> exportUsersFiltered(@RequestParam String filter) {
+        try {
+            List<User> users = userService.getUsersByDateFilter(filter);
+            List<UserDto> userDtos = users.stream()
+                .map(this::convertToUserDto)
+                .collect(Collectors.toList());
+            
+            byte[] excelData = excelExportService.exportUsersToExcel(userDtos);
+            
+            String fileName = getFilteredFileName(filter);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+            headers.setContentDispositionFormData("attachment", fileName);
+            
+            return ResponseEntity.ok()
+                .headers(headers)
+                .body(excelData);
+                
+        } catch (IOException e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+    
+    private String getFilteredFileName(String filter) {
+        return switch (filter) {
+            case "today" -> "bugungi-foydalanuvchilar.xlsx";
+            case "this_month" -> "oylik-foydalanuvchilar.xlsx";
+            case "this_year" -> "yillik-foydalanuvchilar.xlsx";
+            default -> "foydalanuvchilar.xlsx";
+        };
     }
     
     @PostMapping("/broadcast")
