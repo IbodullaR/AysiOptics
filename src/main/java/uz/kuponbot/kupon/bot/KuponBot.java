@@ -640,23 +640,20 @@ public class KuponBot extends TelegramLongPollingBot {
         switch (language) {
             case "uz_cyrl" -> {
                 row1.add("🛒 Дўкон");
-                row1.add("📦 Буюртмаларим");
+                row1.add("👤 Профил");
                 
-                row2.add("👤 Профил");
                 row2.add("ℹ️ Ёрдам");
             }
             case "ru" -> {
                 row1.add("🛒 Магазин");
-                row1.add("📦 Мои заказы");
+                row1.add("👤 Профиль");
                 
-                row2.add("👤 Профиль");
                 row2.add("ℹ️ Помощь");
             }
             default -> {
                 row1.add("🛒 Do'kon");
-                row1.add("📦 Buyurtmalarim");
+                row1.add("👤 Profil");
                 
-                row2.add("👤 Profil");
                 row2.add("ℹ️ Yordam");
             }
         }
@@ -678,19 +675,16 @@ public class KuponBot extends TelegramLongPollingBot {
         switch (text) {
             // Uzbek Latin menu items
             case "🛒 Do'kon" -> openShop(chatId, user.getLanguage());
-            case "📦 Buyurtmalarim" -> showUserOrders(user, chatId);
             case "👤 Profil" -> showUserProfile(user, chatId);
             case "ℹ️ Yordam" -> showHelp(chatId, user.getLanguage());
             
             // Uzbek Cyrillic menu items
             case "🛒 Дўкон" -> openShop(chatId, user.getLanguage());
-            case "📦 Буюртмаларим" -> showUserOrders(user, chatId);
             case "👤 Профил" -> showUserProfile(user, chatId);
             case "ℹ️ Ёрдам" -> showHelp(chatId, user.getLanguage());
             
             // Russian menu items
             case "🛒 Магазин" -> openShop(chatId, user.getLanguage());
-            case "📦 Мои заказы" -> showUserOrders(user, chatId);
             case "👤 Профиль" -> showUserProfile(user, chatId);
             case "ℹ️ Помощь" -> showHelp(chatId, user.getLanguage());
             
@@ -859,31 +853,34 @@ public class KuponBot extends TelegramLongPollingBot {
             ℹ️ Yordam:
             
             🛒 Do'kon - AYSI OPTICS ko'zoynaklar katalogini ko'rish va xarid qilish
-            📦 Buyurtmalarim - buyurtmalar tarixi
             👤 Profil - shaxsiy ma'lumotlaringizni ko'rish
             ℹ️ Yordam - bu yordam xabari
             
-            Savollar bo'lsa, admin bilan bog'laning.
+            📞 Bog'lanish:
+            👩‍💻 @aysi_menejer
+            ☎️ +998938740305
             """,
             """
             ℹ️ Ёрдам:
             
             🛒 Дўкон - AYSI OPTICS кўзойнаклар каталогини кўриш ва харид қилиш
-            📦 Буюртмаларим - буюртмалар тарихи
             👤 Профил - шахсий маълумотларингизни кўриш
             ℹ️ Ёрдам - бу ёрдам хабари
             
-            Саволлар бўлса, админ билан боғланинг.
+            📞 Боғланиш:
+            👩‍💻 @aysi_menejer
+            ☎️ +998938740305
             """,
             """
             ℹ️ Помощь:
             
             🛒 Магазин - просмотр каталога очков AYSI OPTICS и покупки
-            📦 Мои заказы - история заказов
             👤 Профиль - просмотр личной информации
             ℹ️ Помощь - это сообщение помощи
             
-            Если есть вопросы, свяжитесь с администратором.
+            📞 Связаться:
+            👩‍💻 @aysi_menejer
+            ☎️ +998938740305
             """
         );
         
