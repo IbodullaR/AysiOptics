@@ -790,14 +790,33 @@ public class KuponBot extends TelegramLongPollingBot {
             .count();
         
         String profileMessage;
-        if ("ru".equals(user.getLanguage())) {
-            profileMessage = String.format(
-                "� Ваш профиль:\n\n" +
-                "📝 Имя: %s\n" +
-                "� Фамилия: %s\n" +
+        switch (user.getLanguage()) {
+            case "uz_cyrl" -> profileMessage = String.format(
+                "👤 Сизнинг профилингиз:\n\n" +
+                "📝 Исм: %s\n" +
+                "📝 Фамилия: %s\n" +
                 "📱 Телефон: %s\n" +
                 "👤 Username: %s\n" +
-                "� Дата рождения: %s\n" +
+                "🎂 Туғилган сана: %s\n" +
+                "🎫 Жами купонлар: %d\n" +
+                "✅ Фаол купонлар: %d\n" +
+                "📅 Рўйхатдан ўтган: %s",
+                user.getFirstName(),
+                user.getLastName(),
+                user.getPhoneNumber(),
+                user.getTelegramUsername() != null ? user.getTelegramUsername() : "Username йўқ",
+                user.getBirthDate() != null ? user.getBirthDate() : "Киритилмаган",
+                userCoupons.size(),
+                (int) activeCoupons,
+                user.getCreatedAt().toLocalDate()
+            );
+            case "ru" -> profileMessage = String.format(
+                "👤 Ваш профиль:\n\n" +
+                " Имя: %s\n" +
+                "📝 Фамилия: %s\n" +
+                "📱 Телефон: %s\n" +
+                "👤 Username: %s\n" +
+                "🎂 Дата рождения: %s\n" +
                 "🎫 Всего купонов: %d\n" +
                 "✅ Активных купонов: %d\n" +
                 "📅 Зарегистрирован: %s",
@@ -810,8 +829,7 @@ public class KuponBot extends TelegramLongPollingBot {
                 (int) activeCoupons,
                 user.getCreatedAt().toLocalDate()
             );
-        } else {
-            profileMessage = String.format(
+            default -> profileMessage = String.format(
                 "👤 Sizning profilingiz:\n\n" +
                 "📝 Ism: %s\n" +
                 "📝 Familiya: %s\n" +
