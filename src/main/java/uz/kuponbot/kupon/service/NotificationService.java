@@ -64,6 +64,84 @@ public class NotificationService {
         }
     }
     
+    // Har kuni soat 13:00 da 15 kunlik registratsiyalarni tekshirish (ko'zoynak parvarishi)
+    @Scheduled(cron = "0 0 13 * * *") // Har kuni soat 13:00 da
+    public void checkFifteenDayRegistrations() {
+        log.info("Checking 15-day registrations for eyewear care reminder...");
+        
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime fifteenDaysAgo = now.minusDays(15);
+        LocalDateTime sixteenDaysAgo = now.minusDays(16);
+        
+        List<User> allUsers = userService.getAllUsers();
+        
+        for (User user : allUsers) {
+            if (user.getCreatedAt() != null && user.getState() == User.UserState.REGISTERED) {
+                // Aniq 15 kun oldin ro'yxatdan o'tgan foydalanuvchilarni topish
+                if (user.getCreatedAt().isAfter(sixteenDaysAgo) && 
+                    user.getCreatedAt().isBefore(fifteenDaysAgo)) {
+                    
+                    log.info("Found user registered 15 days ago: {} at {}", 
+                        user.getTelegramId(), user.getCreatedAt());
+                    
+                    sendEyewearCareReminder(user);
+                }
+            }
+        }
+    }
+    
+    // Har kuni soat 14:00 da 3 oylik registratsiyalarni tekshirish (ko'z tekshiruvi eslatmasi)
+    @Scheduled(cron = "0 0 14 * * *") // Har kuni soat 14:00 da
+    public void checkThreeMonthRegistrations() {
+        log.info("Checking 3-month registrations for eye checkup reminder...");
+        
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime threeMonthsAgo = now.minusMonths(3);
+        LocalDateTime threeMonthsAndOneDayAgo = now.minusMonths(3).minusDays(1);
+        
+        List<User> allUsers = userService.getAllUsers();
+        
+        for (User user : allUsers) {
+            if (user.getCreatedAt() != null && user.getState() == User.UserState.REGISTERED) {
+                // Aniq 3 oy oldin ro'yxatdan o'tgan foydalanuvchilarni topish
+                if (user.getCreatedAt().isAfter(threeMonthsAndOneDayAgo) && 
+                    user.getCreatedAt().isBefore(threeMonthsAgo)) {
+                    
+                    log.info("Found user registered 3 months ago: {} at {}", 
+                        user.getTelegramId(), user.getCreatedAt());
+                    
+                    sendEyeCheckupReminder(user);
+                }
+            }
+        }
+    }
+    
+    // Har kuni soat 15:00 da 6 oylik registratsiyalarni tekshirish (bepul konsultatsiya)
+    @Scheduled(cron = "0 0 15 * * *") // Har kuni soat 15:00 da
+    public void checkSixMonthRegistrations() {
+        log.info("Checking 6-month registrations for free consultation reminder...");
+        
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime sixMonthsAgo = now.minusMonths(6);
+        LocalDateTime sixMonthsAndOneDayAgo = now.minusMonths(6).minusDays(1);
+        
+        List<User> allUsers = userService.getAllUsers();
+        
+        for (User user : allUsers) {
+            if (user.getCreatedAt() != null && user.getState() == User.UserState.REGISTERED) {
+                // Aniq 6 oy oldin ro'yxatdan o'tgan foydalanuvchilarni topish
+                if (user.getCreatedAt().isAfter(sixMonthsAndOneDayAgo) && 
+                    user.getCreatedAt().isBefore(sixMonthsAgo)) {
+                    
+                    log.info("Found user registered 6 months ago: {} at {}", 
+                        user.getTelegramId(), user.getCreatedAt());
+                    
+                    sendFreeConsultationReminder(user);
+                }
+            }
+        }
+    }
+    
     @Scheduled(cron = "0 0 9 * * *")
     public void checkRegistrationAnniversary() {
         log.info("Checking 6-month registration anniversaries...");
@@ -398,6 +476,165 @@ public class NotificationService {
         
         sendNotificationToAdmin(message);
         log.info("Sent 3-day registration notification for user: {}", user.getTelegramId());
+    }
+    
+    private void sendEyewearCareReminder(User user) {
+        String message = getLocalizedEyewearCareMessage(user.getLanguage());
+        sendMessageToUser(user.getTelegramId(), message);
+        log.info("Sent 15-day eyewear care reminder to user: {}", user.getTelegramId());
+    }
+    
+    private void sendEyeCheckupReminder(User user) {
+        String message = getLocalizedEyeCheckupMessage(user.getLanguage());
+        sendMessageToUser(user.getTelegramId(), message);
+        log.info("Sent 3-month eye checkup reminder to user: {}", user.getTelegramId());
+    }
+    
+    private void sendFreeConsultationReminder(User user) {
+        String message = getLocalizedFreeConsultationMessage(user.getLanguage());
+        sendMessageToUser(user.getTelegramId(), message);
+        log.info("Sent 6-month free consultation reminder to user: {}", user.getTelegramId());
+    }
+    
+    private String getLocalizedEyewearCareMessage(String language) {
+        return switch (language != null ? language : "uz") {
+            case "uz_cyrl" -> """
+                Ҳурматли мижоз! 🤍
+                
+                Соғлигингизга эътиборли бўлганингиз ва уни бизга ишонганингиз учун ташаккур билдирамиз. Сиз харид қилган кўзойнак сизга узоқ вақт хизмат қилиши учун қуйидаги қоидаларга амал қилишингизни сўраймиз:
+                
+                🧼 Кўзойнакларни илиқ сув ва юмшоқ ювиш воситаси билан ювиб, фақат махсус салфетка билан артинг.
+                🙌 Кўзойнакни тақиш ва ечишда икки қўлдан фойдаланинг — бу рамка ва маҳкамлагичларнинг шикастланишидан сақлайди.
+                🕶 Кўзойнакларни ички қисми юмшоқ бўлган қаттиқ футлярда сақланг.
+                🚫 Кўзойнакларни линзалари пастга қаратиб қўйманг.
+                🚿 Душ, сауна, бассейн ва денгиз сувида кўзойнак тақиб юриш тавсия этилмайди.
+                🔥 Кўзойнакларни очиқ олов, иссиқлик манбалари ёки автомобил панели яқинида қолдирманг.
+                💥 Кўзойнакларни зарба ва кучли механик таъсирлардан асранг.
+                🔧 Эслатиб ўтамиз, барча ҳаракатланувчи қисмлар ойига камида бир марта текширув ва маҳкамлашни талаб қилади.
+                ✨ Шунингдек, кўзойнакларни ҳар 3 ойда бир марта ультратовушли тозалашга олиб келишингиз тавсия этилади.
+                🛠 Агар кўзойнагингизда бирор носозлик юзага келса уни таъмирлаш Aysi Optika мутахассислари томонидан бепул амалга оширилади.
+                
+                Кўзойнаклардан фойдаланиш қоидаларига амал қилсангиз, улар сизга узоқ йиллар хизмат қилади.
+                
+                Ҳурмат билан, Aysi Optika жамоаси.
+                """;
+            case "ru" -> """
+                Уважаемый клиент! 🤍
+                
+                Благодарим вас за внимание к своему здоровью и доверие к нам. Чтобы приобретенные вами очки служили вам долго, просим соблюдать следующие правила:
+                
+                🧼 Мойте очки теплой водой с мягким моющим средством и протирайте только специальной салфеткой.
+                🙌 Надевайте и снимайте очки двумя руками — это защитит оправу и крепления от повреждений.
+                🕶 Храните очки в жестком футляре с мягкой внутренней частью.
+                🚫 Не кладите очки линзами вниз.
+                🚿 Не рекомендуется носить очки в душе, сауне, бассейне и морской воде.
+                🔥 Не оставляйте очки вблизи открытого огня, источников тепла или панели автомобиля.
+                💥 Берегите очки от ударов и сильных механических воздействий.
+                🔧 Напоминаем, что все подвижные части требуют проверки и затяжки не реже одного раза в месяц.
+                ✨ Также рекомендуется приносить очки на ультразвуковую чистку каждые 3 месяца.
+                🛠 Если в ваших очках возникнет какая-либо неисправность, ремонт будет выполнен специалистами Aysi Optika бесплатно.
+                
+                Соблюдая правила использования очков, они прослужат вам долгие годы.
+                
+                С уважением, команда Aysi Optika.
+                """;
+            default -> """
+                Hurmatli mijoz! 🤍
+                
+                Sog'lig'ingizga e'tiborli bo'lganingiz va uni bizga ishonganingiz uchun tashakkur bildiramiz. Siz harid qilgan ko'zoynak sizga uzoq vaqt xizmat qilishi uchun quyidagi qoidalarga amal qilishingizni so'raymiz:
+                
+                🧼 Ko'zoynaklarni iliq suv va yumshoq yuvish vositasi bilan yuvib, faqat maxsus salfetka bilan arting.
+                🙌 Ko'zoynakni taqish va yechishda ikki qo'ldan foydalaning — bu ramka va mahkamlagichlarning shikastlanishidan saqlaydi.
+                🕶 Ko'zoynaklarni ichki qismi yumshoq bo'lgan qattiq futlyarda saqlang.
+                🚫 Ko'zoynaklarni linzalari pastga qaratib qo'ymang.
+                🚿 Dush, sauna, basseyn va dengiz suvida ko'zoynak taqib yurish tavsiya etilmaydi.
+                🔥 Ko'zoynaklarni ochiq olov, issiqlik manbalari yoki avtomobil paneli yaqinida qoldirmang.
+                💥 Ko'zoynaklarni zarba va kuchli mexanik ta'sirlardan asrang.
+                🔧 Eslatib o'tamiz, barcha harakatlanuvchi qismlar oyiga kamida bir marta tekshiruv va mahkamlashni talab qiladi.
+                ✨ Shuningdek, ko'zoynaklarni har 3 oyda bir marta ultratovushli tozalashga olib kelishingiz tavsiya etiladi.
+                🛠 Agar ko'zoynagingizda biror nosozlik yuzaga kelsa uni ta'mirlash Aysi Optika mutaxassislari tomonidan bepul amalga oshiriladi.
+                
+                Ko'zoynaklardan foydalanish qoidalariga amal qilsangiz, ular sizga uzoq yillar xizmat qiladi.
+                
+                Hurmat bilan, Aysi Optika jamoasi.
+                """;
+        };
+    }
+    
+    private String getLocalizedEyeCheckupMessage(String language) {
+        return switch (language != null ? language : "uz") {
+            case "uz_cyrl" -> """
+                🔍 Олимлар айтишича, кўриш қобилиятини сақлаб қолиш учун кўз текширувини ҳар 6 ойда бир марта ўтказиш тавсия этилади.
+                
+                Мунтазам текширув:
+                ✅ Кўриш ўткирлиги ёмонлашиб кетишини олдини олади
+                ✅ Чарчаш синдроми олди олинади (бош оғриғи, доимий ҳолсизлик, кўзлар тез чарчаши, …)
+                ✅ Даволаш таъсирини оширади.
+                
+                Кўз соғлигингизни эътиборсиз қолдирманг. 🤍
+                
+                Ҳурмат билан, Aysi Optika жамоаси.
+                """;
+            case "ru" -> """
+                🔍 Ученые утверждают, что для сохранения зрения рекомендуется проходить проверку зрения каждые 6 месяцев.
+                
+                Регулярная проверка:
+                ✅ Предотвращает ухудшение остроты зрения
+                ✅ Предупреждает синдром усталости (головная боль, постоянная слабость, быстрая утомляемость глаз, …)
+                ✅ Повышает эффективность лечения.
+                
+                Не оставляйте здоровье глаз без внимания. 🤍
+                
+                С уважением, команда Aysi Optika.
+                """;
+            default -> """
+                🔍 Olimlar aytishicha, ko'rish qobiliyatini saqlab qolish uchun ko'z tekshiruvini har 6 oyda bir marta o'tkazish tavsiya etiladi.
+                
+                Muntazam tekshiruv:
+                ✅ Ko'rish o'tkirligi yomonlashib ketishini oldini oladi
+                ✅ Charchash sindromi oldi olinadi (bosh og'rigi, doimiy holsizlik, ko'zlar tez charchashi, …)
+                ✅ Davolash ta'sirini oshiradi.
+                
+                Ko'z sog'lig'ingizni e'tiborsiz qoldirmang. 🤍
+                
+                Hurmat bilan, Aysi Optika jamoasi.
+                """;
+        };
+    }
+    
+    private String getLocalizedFreeConsultationMessage(String language) {
+        return switch (language != null ? language : "uz") {
+            case "uz_cyrl" -> """
+                🧠 Мутахассислар таъкидлашича, кўз саломатлигини назорат қилиш учун кўз текширувини мунтазам равишда ўтказиб туриш муҳим.
+                
+                Вақтида текширувдан ўтиш кўришдаги ўзгаришларни аниқлаш ва даволаш таъсирини оширишда ёрдам беради.
+                
+                ❗️Эслатма: Сиз кўзойнак харид қилганингизга 6 ой бўлибди. Ҳозирда сиз учун бепул шифокор консультациясига ёзилиш имкониятини мавжуд.
+                
+                📩 Ёзилиш учун биз билан боғланинг
+                ☎️ +998 93 874 03 05
+                """;
+            case "ru" -> """
+                🧠 Специалисты подчеркивают, что для контроля здоровья глаз важно регулярно проходить проверку зрения.
+                
+                Своевременная проверка помогает выявить изменения в зрении и повысить эффективность лечения.
+                
+                ❗️Напоминание: Прошло 6 месяцев с момента покупки очков. Сейчас для вас доступна возможность записаться на бесплатную консультацию врача.
+                
+                📩 Для записи свяжитесь с нами
+                ☎️ +998 93 874 03 05
+                """;
+            default -> """
+                🧠 Mutaxassislar ta'kidlashicha, ko'z salomatligini nazorat qilish uchun ko'z tekshiruvini muntazam ravishda o'tkazib turish muhim.
+                
+                Vaqtida tekshiruvdan o'tish ko'rishdagi o'zgarishlarni aniqlash va davolash ta'sirini oshirishda yordam beradi.
+                
+                ❗️Eslatma: Siz ko'zoynak xarid qilganingizga 6 oy bo'libdi. Hozirda siz uchun bepul shifokor konsultatsiyasiga yozilish imkoniyati mavjud.
+                
+                📩 Yozilish uchun biz bilan bog'laning
+                ☎️ +998 93 874 03 05
+                """;
+        };
     }
     
     // 6 oylik yubiley test uchun

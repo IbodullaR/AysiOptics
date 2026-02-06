@@ -724,21 +724,30 @@ public class KuponBot extends TelegramLongPollingBot {
             case "👤 Profil" -> showUserProfile(user, chatId);
             case "💬 Fikr bildirish" -> showReviewRequest(chatId, user.getLanguage());
             case "📋 So'rovnomada qatnashish" -> showSurveyRequest(chatId, user.getLanguage());
-            case "ℹ️ Yordam" -> showHelp(chatId, user.getLanguage());
+            case "ℹ️ Yordam" -> {
+                showHelp(chatId, user.getLanguage());
+                notifyAdminAboutHelpRequest(user);
+            }
             
             // Uzbek Cyrillic menu items
             case "🛒 Дўкон" -> openShop(chatId, user.getLanguage());
             case "👤 Профил" -> showUserProfile(user, chatId);
             case "💬 Фикр билдириш" -> showReviewRequest(chatId, user.getLanguage());
             case "📋 Сўровномада қатнашиш" -> showSurveyRequest(chatId, user.getLanguage());
-            case "ℹ️ Ёрдам" -> showHelp(chatId, user.getLanguage());
+            case "ℹ️ Ёрдам" -> {
+                showHelp(chatId, user.getLanguage());
+                notifyAdminAboutHelpRequest(user);
+            }
             
             // Russian menu items
             case "🛒 Магазин" -> openShop(chatId, user.getLanguage());
             case "👤 Профиль" -> showUserProfile(user, chatId);
             case "💬 Оставить отзыв" -> showReviewRequest(chatId, user.getLanguage());
             case "📋 Участвовать в опросе" -> showSurveyRequest(chatId, user.getLanguage());
-            case "ℹ️ Помощь" -> showHelp(chatId, user.getLanguage());
+            case "ℹ️ Помощь" -> {
+                showHelp(chatId, user.getLanguage());
+                notifyAdminAboutHelpRequest(user);
+            }
             
             // Common commands
             case "/start" -> sendRegisteredUserWelcome(user, chatId);
@@ -1035,6 +1044,8 @@ public class KuponBot extends TelegramLongPollingBot {
             
             🛒 Do'kon - AYSI OPTICS ko'zoynaklar katalogini ko'rish va xarid qilish
             👤 Profil - shaxsiy ma'lumotlaringizni ko'rish
+            💬 Fikr bildirish - Yandex Maps'da biz haqimizda fikr qoldirish
+            📋 So'rovnomada qatnashish - Google Forms orqali so'rovnomani to'ldirish
             ℹ️ Yordam - bu yordam xabari
             
             📞 Bog'lanish:
@@ -1046,6 +1057,8 @@ public class KuponBot extends TelegramLongPollingBot {
             
             🛒 Дўкон - AYSI OPTICS кўзойнаклар каталогини кўриш ва харид қилиш
             👤 Профил - шахсий маълумотларингизни кўриш
+            💬 Фикр билдириш - Yandex Maps'да биз ҳақимизда фикр қолдириш
+            📋 Сўровномада қатнашиш - Google Forms орқали сўровномани тўлдириш
             ℹ️ Ёрдам - бу ёрдам хабари
             
             📞 Боғланиш:
@@ -1057,6 +1070,8 @@ public class KuponBot extends TelegramLongPollingBot {
             
             🛒 Магазин - просмотр каталога очков AYSI OPTICS и покупки
             👤 Профиль - просмотр личной информации
+            💬 Оставить отзыв - оставить отзыв о нас на Yandex Maps
+            📋 Участвовать в опросе - заполнить опрос через Google Forms
             ℹ️ Помощь - это сообщение помощи
             
             📞 Связаться:
@@ -1656,6 +1671,38 @@ public class KuponBot extends TelegramLongPollingBot {
                 sendMessage(Long.parseLong(adminId), userInfo);
             } catch (Exception e) {
                 log.error("Error sending message to admin {}: ", adminId, e);
+            }
+        }
+    }
+    
+    private void notifyAdminAboutHelpRequest(User user) {
+        // Admin ID'larini olish
+        String[] adminIds = {"1807166165", "7543576887"}; // Admin 1 va Admin 2
+        
+        String notification = String.format(
+            "ℹ️ Yordam so'raldi!\n\n" +
+            "👤 Foydalanuvchi: %s %s\n" +
+            "📱 Telefon: %s\n" +
+            "👤 Username: %s\n" +
+            "🆔 Telegram ID: %d\n" +
+            "🎂 Tug'ilgan sana: %s\n" +
+            "📅 Ro'yxatdan o'tgan: %s\n\n" +
+            "Foydalanuvchi 'Yordam' tugmasini bosdi.",
+            user.getFirstName(),
+            user.getLastName(),
+            user.getPhoneNumber(),
+            user.getTelegramUsername() != null ? user.getTelegramUsername() : "Yo'q",
+            user.getTelegramId(),
+            user.getBirthDate() != null ? user.getBirthDate() : "Kiritilmagan",
+            user.getCreatedAt().toLocalDate()
+        );
+        
+        // Har bir adminga yuborish
+        for (String adminId : adminIds) {
+            try {
+                sendMessage(Long.parseLong(adminId), notification);
+            } catch (Exception e) {
+                log.error("Error sending help notification to admin {}: ", adminId, e);
             }
         }
     }
