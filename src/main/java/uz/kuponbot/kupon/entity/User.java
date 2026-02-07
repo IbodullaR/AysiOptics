@@ -78,6 +78,9 @@ public class User {
     @Column(name = "language", nullable = true)
     private String language = "uz"; // "uz" (lotin), "ru" (rus), "uz_cyrl" (kiril)
     
+    @Column(nullable = false)
+    private Integer cashbackBalance = 0; // Keshbek balansi (so'm)
+    
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private UserState state = UserState.START;

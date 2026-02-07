@@ -169,6 +169,48 @@
             font-weight: normal;
             color: #333;
         }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-top: 20px;
+            padding: 15px;
+        }
+        
+        .pagination button {
+            padding: 8px 16px;
+            border: 1px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .pagination button:hover:not(:disabled) {
+            background: #667eea;
+            color: white;
+        }
+        
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .pagination button.active {
+            background: #667eea;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .pagination-info {
+            color: #666;
+            font-size: 14px;
+            font-weight: 500;
+        }
     </style>
 </head>
 <body>
@@ -463,6 +505,115 @@
                 </table>
             </div>
         </div>
+        
+        <div class="section">
+            <h2 class="section-title">💰 Keshbek Boshqaruvi</h2>
+            
+            <!-- Yangi harid qo'shish -->
+            <div style="margin-bottom: 30px; background: #e8f5e9; padding: 20px; border-radius: 8px;">
+                <h3 style="margin-bottom: 15px;">➕ Yangi Harid Qo'shish</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 2fr auto; gap: 15px; align-items: end;">
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Telegram ID</label>
+                        <input type="number" id="purchaseTelegramId" placeholder="123456789" 
+                            style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px;">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Harid miqdori (so'm)</label>
+                        <input type="number" id="purchaseAmount" placeholder="100000" oninput="calculateCashback()"
+                            style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px;">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Izoh (ixtiyoriy)</label>
+                        <input type="text" id="purchaseDescription" placeholder="Ko'zoynak xaridi" 
+                            style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px;">
+                    </div>
+                    <button class="btn" onclick="addPurchase()" style="background: #28a745; height: 42px;">Qo'shish</button>
+                </div>
+                <div id="cashbackCalculation" style="margin-top: 10px; font-size: 14px; color: #2e7d32; font-weight: 600;"></div>
+                <div id="purchaseStatus" style="margin-top: 10px; font-weight: bold;"></div>
+            </div>
+            
+            <!-- Foydalanuvchilar keshbek balansi -->
+            <div style="margin-bottom: 30px;">
+                <h3 style="margin-bottom: 15px;">👥 Foydalanuvchilar Keshbek Balansi</h3>
+                <button class="btn" onclick="loadCashbackBalances()" style="background: #007bff; margin-bottom: 15px;">🔄 Yangilash</button>
+                <div id="balancesLoading" class="loading" style="display: none;">Ma'lumotlar yuklanmoqda...</div>
+                <table class="table" id="balancesTable" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th>Telegram ID</th>
+                            <th>Ism</th>
+                            <th>Telefon</th>
+                            <th>Joriy balans</th>
+                            <th>Jami olingan</th>
+                            <th>Jami ishlatilgan</th>
+                        </tr>
+                    </thead>
+                    <tbody id="balancesTableBody">
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Keshbek tarixi -->
+            <div style="margin-bottom: 30px;">
+                <h3 style="margin-bottom: 15px;">📜 Keshbek Tarixi</h3>
+                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                    <button class="btn" onclick="loadCashbackHistory()" style="background: #007bff;">🔄 Yangilash</button>
+                    <select id="historyTypeFilter" onchange="applyCashbackHistoryFilter()" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        <option value="">Barcha turlar</option>
+                        <option value="EARNED">Olingan</option>
+                        <option value="USED">Ishlatilgan</option>
+                        <option value="REFUNDED">Qaytarilgan</option>
+                    </select>
+                    <input type="text" id="historySearch" placeholder="Qidirish..." oninput="applyCashbackHistoryFilter()"
+                        style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; flex: 1;">
+                </div>
+                <div id="historyLoading" class="loading" style="display: none;">Ma'lumotlar yuklanmoqda...</div>
+                <table class="table" id="historyTable" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th>Sana</th>
+                            <th>Foydalanuvchi</th>
+                            <th>Turi</th>
+                            <th>Harid</th>
+                            <th>Keshbek</th>
+                            <th>Izoh</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTableBody">
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Keshbek ishlatish/qaytarish -->
+            <div style="background: #fff3cd; padding: 20px; border-radius: 8px;">
+                <h3 style="margin-bottom: 15px;">⚙️ Keshbek Ishlatish / Qaytarish</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 2fr auto auto; gap: 15px; align-items: end;">
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Telegram ID</label>
+                        <input type="number" id="actionTelegramId" placeholder="123456789" 
+                            style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px;">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Miqdor (so'm)</label>
+                        <input type="number" id="actionAmount" placeholder="5000" 
+                            style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px;">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Izoh</label>
+                        <input type="text" id="actionDescription" placeholder="Sabab" 
+                            style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px;">
+                    </div>
+                    <button class="btn" onclick="useCashback()" style="background: #dc3545; height: 42px;">Ishlatish</button>
+                    <button class="btn" onclick="refundCashback()" style="background: #28a745; height: 42px;">Qaytarish</button>
+                </div>
+                <div id="actionStatus" style="margin-top: 10px; font-weight: bold;"></div>
+                <p style="margin-top: 10px; color: #856404; font-size: 13px;">
+                    ⚠️ <strong>Ishlatish:</strong> Foydalanuvchi balansidan keshbek ayiriladi. <strong>Qaytarish:</strong> Foydalanuvchi balansiga keshbek qo'shiladi.
+                </p>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -473,6 +624,12 @@
         
         // API base URL (Local development)
         const API_BASE = '/api/admin';
+        
+        // Pagination settings
+        const ITEMS_PER_PAGE = 20;
+        let currentUserPage = 1;
+        let currentBalancePage = 1;
+        let currentHistoryPage = 1;
         
         // Store all users and filtered users
         let allUsers = [];
@@ -747,7 +904,13 @@
             const resultCount = document.getElementById('userResultCount');
             resultCount.innerHTML = `Jami: <strong>${users.length}</strong> ta foydalanuvchi`;
             
-            users.forEach(user => {
+            // Calculate pagination
+            const totalPages = Math.ceil(users.length / ITEMS_PER_PAGE);
+            const startIndex = (currentUserPage - 1) * ITEMS_PER_PAGE;
+            const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, users.length);
+            const paginatedUsers = users.slice(startIndex, endIndex);
+            
+            paginatedUsers.forEach(user => {
                 const row = document.createElement('tr');
                 
                 // Parse createdAt date
@@ -769,6 +932,38 @@
             
             document.getElementById('usersLoading').style.display = 'none';
             document.getElementById('usersTable').style.display = 'table';
+            
+            // Add pagination controls
+            renderUserPagination(totalPages, users.length, startIndex, endIndex);
+        }
+        
+        function renderUserPagination(totalPages, totalItems, startIndex, endIndex) {
+            let paginationDiv = document.getElementById('userPagination');
+            if (!paginationDiv) {
+                paginationDiv = document.createElement('div');
+                paginationDiv.id = 'userPagination';
+                paginationDiv.className = 'pagination';
+                document.getElementById('usersTable').parentNode.appendChild(paginationDiv);
+            }
+            
+            if (totalPages <= 1) {
+                paginationDiv.style.display = 'none';
+                return;
+            }
+            
+            paginationDiv.style.display = 'flex';
+            paginationDiv.innerHTML = `
+                <button onclick="changeUserPage(1)" ${currentUserPage === 1 ? 'disabled' : ''}>⏮️ Birinchi</button>
+                <button onclick="changeUserPage(${currentUserPage - 1})" ${currentUserPage === 1 ? 'disabled' : ''}>◀️ Oldingi</button>
+                <span class="pagination-info">${startIndex + 1}-${endIndex} / ${totalItems}</span>
+                <button onclick="changeUserPage(${currentUserPage + 1})" ${currentUserPage === totalPages ? 'disabled' : ''}>Keyingi ▶️</button>
+                <button onclick="changeUserPage(${totalPages})" ${currentUserPage === totalPages ? 'disabled' : ''}>Oxirgi ⏭️</button>
+            `;
+        }
+        
+        function changeUserPage(page) {
+            currentUserPage = page;
+            displayUsers(filteredUsers);
         }
         
         // Apply date filter
@@ -796,6 +991,7 @@
                 return match;
             });
             
+            currentUserPage = 1; // Reset to first page
             displayUsers(filteredUsers);
         }
         
@@ -805,6 +1001,7 @@
             document.getElementById('monthFilter').value = '';
             document.getElementById('dayFilter').value = '';
             filteredUsers = [...allUsers];
+            currentUserPage = 1; // Reset to first page
             displayUsers(filteredUsers);
         }
         
@@ -905,6 +1102,7 @@
             const searchTerm = e.target.value.toLowerCase();
             
             if (!searchTerm) {
+                currentUserPage = 1;
                 displayUsers(filteredUsers);
                 return;
             }
@@ -914,6 +1112,7 @@
                 return searchString.includes(searchTerm);
             });
             
+            currentUserPage = 1;
             displayUsers(searchResults);
         });
         
@@ -1315,6 +1514,441 @@
             };
             return typeMap[type] || type;
         }
+        
+        // ========== CASHBACK FUNCTIONS ==========
+        
+        // Calculate cashback (5%)
+        function calculateCashback() {
+            const amount = document.getElementById('purchaseAmount').value;
+            const calcDiv = document.getElementById('cashbackCalculation');
+            
+            if (amount && amount > 0) {
+                const cashback = Math.round(amount * 0.05);
+                calcDiv.textContent = `💰 Keshbek: ${formatPrice(cashback)} so'm (5%)`;
+            } else {
+                calcDiv.textContent = '';
+            }
+        }
+        
+        // Add purchase
+        async function addPurchase() {
+            const telegramId = document.getElementById('purchaseTelegramId').value.trim();
+            const amount = document.getElementById('purchaseAmount').value.trim();
+            const description = document.getElementById('purchaseDescription').value.trim() || 'Harid';
+            const statusElement = document.getElementById('purchaseStatus');
+            
+            if (!telegramId || !amount) {
+                alert('❌ Iltimos, Telegram ID va harid miqdorini kiriting!');
+                return;
+            }
+            
+            if (amount <= 0) {
+                alert('❌ Harid miqdori 0 dan katta bo\'lishi kerak!');
+                return;
+            }
+            
+            try {
+                statusElement.textContent = '⏳ Qo\'shilmoqda...';
+                statusElement.style.color = '#007bff';
+                
+                const response = await apiCall(`${API_BASE}/cashback/add-purchase`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        telegramId: parseInt(telegramId),
+                        purchaseAmount: parseInt(amount),
+                        description: description
+                    })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    statusElement.textContent = `✅ Muvaffaqiyatli! Keshbek: ${formatPrice(result.cashbackAmount)} so'm`;
+                    statusElement.style.color = '#28a745';
+                    
+                    // Clear form
+                    document.getElementById('purchaseTelegramId').value = '';
+                    document.getElementById('purchaseAmount').value = '';
+                    document.getElementById('purchaseDescription').value = '';
+                    document.getElementById('cashbackCalculation').textContent = '';
+                    
+                    // Reload data
+                    loadCashbackBalances();
+                    loadCashbackHistory();
+                    
+                    alert(`✅ Harid qo'shildi!\nKeshbek: ${formatPrice(result.cashbackAmount)} so'm`);
+                } else {
+                    const error = await response.text();
+                    statusElement.textContent = '❌ Xatolik: ' + error;
+                    statusElement.style.color = '#dc3545';
+                }
+            } catch (error) {
+                console.error('Error adding purchase:', error);
+                statusElement.textContent = '❌ Xatolik yuz berdi';
+                statusElement.style.color = '#dc3545';
+            }
+        }
+        
+        // Load cashback balances
+        async function loadCashbackBalances() {
+            try {
+                document.getElementById('balancesLoading').style.display = 'block';
+                document.getElementById('balancesTable').style.display = 'none';
+                
+                const response = await apiCall(`${API_BASE}/cashback/all-balances`);
+                const balances = await response.json();
+                
+                // Store globally for pagination
+                window.allCashbackBalances = balances;
+                currentBalancePage = 1;
+                displayCashbackBalances(balances);
+                
+            } catch (error) {
+                console.error('Error loading cashback balances:', error);
+                document.getElementById('balancesLoading').textContent = 'Xatolik yuz berdi';
+            }
+        }
+        
+        function displayCashbackBalances(balances) {
+            const tbody = document.getElementById('balancesTableBody');
+            tbody.innerHTML = '';
+            
+            if (balances.length === 0) {
+                const row = document.createElement('tr');
+                row.innerHTML = '<td colspan="6" style="text-align: center; padding: 20px; color: #666;">Hech qanday ma\'lumot yo\'q</td>';
+                tbody.appendChild(row);
+                document.getElementById('balancesLoading').style.display = 'none';
+                document.getElementById('balancesTable').style.display = 'table';
+                
+                // Hide pagination
+                let paginationDiv = document.getElementById('balancePagination');
+                if (paginationDiv) paginationDiv.style.display = 'none';
+                return;
+            }
+            
+            // Calculate pagination
+            const totalPages = Math.ceil(balances.length / ITEMS_PER_PAGE);
+            const startIndex = (currentBalancePage - 1) * ITEMS_PER_PAGE;
+            const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, balances.length);
+            const paginatedBalances = balances.slice(startIndex, endIndex);
+            
+            paginatedBalances.forEach(balance => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${balance.telegramId}</td>
+                    <td>${balance.fullName || '-'}</td>
+                    <td>${balance.phoneNumber || '-'}</td>
+                    <td><strong style="color: #28a745;">${formatPrice(balance.currentBalance)} so'm</strong></td>
+                    <td>${formatPrice(balance.totalEarned)} so'm</td>
+                    <td>${formatPrice(balance.totalUsed)} so'm</td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            document.getElementById('balancesLoading').style.display = 'none';
+            document.getElementById('balancesTable').style.display = 'table';
+            
+            // Add pagination controls
+            renderBalancePagination(totalPages, balances.length, startIndex, endIndex);
+        }
+        
+        function renderBalancePagination(totalPages, totalItems, startIndex, endIndex) {
+            let paginationDiv = document.getElementById('balancePagination');
+            if (!paginationDiv) {
+                paginationDiv = document.createElement('div');
+                paginationDiv.id = 'balancePagination';
+                paginationDiv.className = 'pagination';
+                document.getElementById('balancesTable').parentNode.appendChild(paginationDiv);
+            }
+            
+            if (totalPages <= 1) {
+                paginationDiv.style.display = 'none';
+                return;
+            }
+            
+            paginationDiv.style.display = 'flex';
+            paginationDiv.innerHTML = `
+                <button onclick="changeBalancePage(1)" ${currentBalancePage === 1 ? 'disabled' : ''}>⏮️ Birinchi</button>
+                <button onclick="changeBalancePage(${currentBalancePage - 1})" ${currentBalancePage === 1 ? 'disabled' : ''}>◀️ Oldingi</button>
+                <span class="pagination-info">${startIndex + 1}-${endIndex} / ${totalItems}</span>
+                <button onclick="changeBalancePage(${currentBalancePage + 1})" ${currentBalancePage === totalPages ? 'disabled' : ''}>Keyingi ▶️</button>
+                <button onclick="changeBalancePage(${totalPages})" ${currentBalancePage === totalPages ? 'disabled' : ''}>Oxirgi ⏭️</button>
+            `;
+        }
+        
+        function changeBalancePage(page) {
+            currentBalancePage = page;
+            displayCashbackBalances(window.allCashbackBalances);
+        }
+        
+        // Load cashback history
+        async function loadCashbackHistory() {
+            try {
+                document.getElementById('historyLoading').style.display = 'block';
+                document.getElementById('historyTable').style.display = 'none';
+                
+                const response = await apiCall(`${API_BASE}/cashback/all-history`);
+                const history = await response.json();
+                
+                // Store globally for filtering
+                window.allCashbackHistory = history;
+                applyCashbackHistoryFilter();
+                
+            } catch (error) {
+                console.error('Error loading cashback history:', error);
+                document.getElementById('historyLoading').textContent = 'Xatolik yuz berdi';
+            }
+        }
+        
+        // Apply cashback history filter
+        function applyCashbackHistoryFilter() {
+            if (!window.allCashbackHistory) {
+                return;
+            }
+            
+            const typeFilter = document.getElementById('historyTypeFilter').value;
+            const searchTerm = document.getElementById('historySearch').value.toLowerCase();
+            
+            let filtered = window.allCashbackHistory.filter(item => {
+                // Type filter
+                if (typeFilter && item.type !== typeFilter) {
+                    return false;
+                }
+                
+                // Search filter
+                if (searchTerm) {
+                    const searchString = `${item.telegramId} ${item.fullName} ${item.description}`.toLowerCase();
+                    if (!searchString.includes(searchTerm)) {
+                        return false;
+                    }
+                }
+                
+                return true;
+            });
+            
+            // Don't reset page if we're just changing pages
+            if (typeFilter !== window.lastHistoryTypeFilter || searchTerm !== window.lastHistorySearchTerm) {
+                currentHistoryPage = 1;
+            }
+            window.lastHistoryTypeFilter = typeFilter;
+            window.lastHistorySearchTerm = searchTerm;
+            
+            displayCashbackHistory(filtered);
+        }
+        
+        // Display cashback history
+        function displayCashbackHistory(history) {
+            const tbody = document.getElementById('historyTableBody');
+            tbody.innerHTML = '';
+            
+            if (history.length === 0) {
+                const row = document.createElement('tr');
+                row.innerHTML = '<td colspan="6" style="text-align: center; padding: 20px; color: #666;">Hech qanday ma\'lumot yo\'q</td>';
+                tbody.appendChild(row);
+                document.getElementById('historyLoading').style.display = 'none';
+                document.getElementById('historyTable').style.display = 'table';
+                
+                // Hide pagination
+                let paginationDiv = document.getElementById('historyPagination');
+                if (paginationDiv) paginationDiv.style.display = 'none';
+                return;
+            }
+            
+            // Calculate pagination
+            const totalPages = Math.ceil(history.length / ITEMS_PER_PAGE);
+            const startIndex = (currentHistoryPage - 1) * ITEMS_PER_PAGE;
+            const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, history.length);
+            const paginatedHistory = history.slice(startIndex, endIndex);
+            
+            paginatedHistory.forEach(item => {
+                const row = document.createElement('tr');
+                
+                const typeText = getCashbackTypeText(item.type);
+                const typeColor = item.type === 'EARNED' ? '#28a745' : item.type === 'USED' ? '#dc3545' : '#007bff';
+                
+                row.innerHTML = `
+                    <td>${new Date(item.createdAt).toLocaleString('uz-UZ')}</td>
+                    <td>${item.fullName}<br><small>ID: ${item.telegramId}</small></td>
+                    <td><span style="color: ${typeColor}; font-weight: 600;">${typeText}</span></td>
+                    <td>${item.purchaseAmount > 0 ? formatPrice(item.purchaseAmount) + ' so\'m' : '-'}</td>
+                    <td><strong>${formatPrice(item.cashbackAmount)} so'm</strong></td>
+                    <td>${item.description || '-'}</td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            document.getElementById('historyLoading').style.display = 'none';
+            document.getElementById('historyTable').style.display = 'table';
+            
+            // Add pagination controls
+            renderHistoryPagination(totalPages, history.length, startIndex, endIndex);
+        }
+        
+        function renderHistoryPagination(totalPages, totalItems, startIndex, endIndex) {
+            let paginationDiv = document.getElementById('historyPagination');
+            if (!paginationDiv) {
+                paginationDiv = document.createElement('div');
+                paginationDiv.id = 'historyPagination';
+                paginationDiv.className = 'pagination';
+                document.getElementById('historyTable').parentNode.appendChild(paginationDiv);
+            }
+            
+            if (totalPages <= 1) {
+                paginationDiv.style.display = 'none';
+                return;
+            }
+            
+            paginationDiv.style.display = 'flex';
+            paginationDiv.innerHTML = `
+                <button onclick="changeHistoryPage(1)" ${currentHistoryPage === 1 ? 'disabled' : ''}>⏮️ Birinchi</button>
+                <button onclick="changeHistoryPage(${currentHistoryPage - 1})" ${currentHistoryPage === 1 ? 'disabled' : ''}>◀️ Oldingi</button>
+                <span class="pagination-info">${startIndex + 1}-${endIndex} / ${totalItems}</span>
+                <button onclick="changeHistoryPage(${currentHistoryPage + 1})" ${currentHistoryPage === totalPages ? 'disabled' : ''}>Keyingi ▶️</button>
+                <button onclick="changeHistoryPage(${totalPages})" ${currentHistoryPage === totalPages ? 'disabled' : ''}>Oxirgi ⏭️</button>
+            `;
+        }
+        
+        function changeHistoryPage(page) {
+            currentHistoryPage = page;
+            applyCashbackHistoryFilter();
+        }
+        
+        // Use cashback
+        async function useCashback() {
+            const telegramId = document.getElementById('actionTelegramId').value.trim();
+            const amount = document.getElementById('actionAmount').value.trim();
+            const description = document.getElementById('actionDescription').value.trim() || 'Keshbek ishlatildi';
+            const statusElement = document.getElementById('actionStatus');
+            
+            if (!telegramId || !amount) {
+                alert('❌ Iltimos, Telegram ID va miqdorni kiriting!');
+                return;
+            }
+            
+            if (amount <= 0) {
+                alert('❌ Miqdor 0 dan katta bo\'lishi kerak!');
+                return;
+            }
+            
+            if (!confirm(`Haqiqatan ham ${formatPrice(amount)} so'm keshbekni ishlatishni xohlaysizmi?`)) {
+                return;
+            }
+            
+            try {
+                statusElement.textContent = '⏳ Ishlanmoqda...';
+                statusElement.style.color = '#007bff';
+                
+                const response = await apiCall(`${API_BASE}/cashback/use`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        telegramId: parseInt(telegramId),
+                        amount: parseInt(amount),
+                        description: description
+                    })
+                });
+                
+                if (response.ok) {
+                    statusElement.textContent = '✅ Keshbek muvaffaqiyatli ishlatildi!';
+                    statusElement.style.color = '#28a745';
+                    
+                    // Clear form
+                    document.getElementById('actionTelegramId').value = '';
+                    document.getElementById('actionAmount').value = '';
+                    document.getElementById('actionDescription').value = '';
+                    
+                    // Reload data
+                    loadCashbackBalances();
+                    loadCashbackHistory();
+                    
+                    alert('✅ Keshbek muvaffaqiyatli ishlatildi!');
+                } else {
+                    const error = await response.text();
+                    statusElement.textContent = '❌ Xatolik: ' + error;
+                    statusElement.style.color = '#dc3545';
+                    alert('❌ Xatolik: ' + error);
+                }
+            } catch (error) {
+                console.error('Error using cashback:', error);
+                statusElement.textContent = '❌ Xatolik yuz berdi';
+                statusElement.style.color = '#dc3545';
+            }
+        }
+        
+        // Refund cashback
+        async function refundCashback() {
+            const telegramId = document.getElementById('actionTelegramId').value.trim();
+            const amount = document.getElementById('actionAmount').value.trim();
+            const description = document.getElementById('actionDescription').value.trim() || 'Keshbek qaytarildi';
+            const statusElement = document.getElementById('actionStatus');
+            
+            if (!telegramId || !amount) {
+                alert('❌ Iltimos, Telegram ID va miqdorni kiriting!');
+                return;
+            }
+            
+            if (amount <= 0) {
+                alert('❌ Miqdor 0 dan katta bo\'lishi kerak!');
+                return;
+            }
+            
+            if (!confirm(`Haqiqatan ham ${formatPrice(amount)} so'm keshbekni qaytarishni xohlaysizmi?`)) {
+                return;
+            }
+            
+            try {
+                statusElement.textContent = '⏳ Ishlanmoqda...';
+                statusElement.style.color = '#007bff';
+                
+                const response = await apiCall(`${API_BASE}/cashback/refund`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        telegramId: parseInt(telegramId),
+                        amount: parseInt(amount),
+                        description: description
+                    })
+                });
+                
+                if (response.ok) {
+                    statusElement.textContent = '✅ Keshbek muvaffaqiyatli qaytarildi!';
+                    statusElement.style.color = '#28a745';
+                    
+                    // Clear form
+                    document.getElementById('actionTelegramId').value = '';
+                    document.getElementById('actionAmount').value = '';
+                    document.getElementById('actionDescription').value = '';
+                    
+                    // Reload data
+                    loadCashbackBalances();
+                    loadCashbackHistory();
+                    
+                    alert('✅ Keshbek muvaffaqiyatli qaytarildi!');
+                } else {
+                    const error = await response.text();
+                    statusElement.textContent = '❌ Xatolik: ' + error;
+                    statusElement.style.color = '#dc3545';
+                    alert('❌ Xatolik: ' + error);
+                }
+            } catch (error) {
+                console.error('Error refunding cashback:', error);
+                statusElement.textContent = '❌ Xatolik yuz berdi';
+                statusElement.style.color = '#dc3545';
+            }
+        }
+        
+        // Get cashback type text
+        function getCashbackTypeText(type) {
+            const typeMap = {
+                'EARNED': '➕ Olingan',
+                'USED': '➖ Ishlatilgan',
+                'REFUNDED': '↩️ Qaytarilgan'
+            };
+            return typeMap[type] || type;
+        }
+        
+        // Load cashback data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCashbackBalances();
+            loadCashbackHistory();
+        });
     </script>
 </body>
 </html>

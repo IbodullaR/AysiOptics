@@ -49,6 +49,7 @@ public class AdminController {
     private final ExcelExportService excelExportService;
     private final BroadcastService broadcastService;
     private final VoucherService voucherService;
+    private final uz.kuponbot.kupon.service.CashbackService cashbackService;
     
     @GetMapping("/stats")
     public ResponseEntity<AdminStatsDto> getStats() {
@@ -441,5 +442,107 @@ public class AdminController {
         private Long telegramId;
         private Integer amount;
         private Integer validDays;
+    }
+    
+    // ========== CASHBACK ENDPOINTS ==========
+    
+    @PostMapping("/cashback/add-purchase")
+    public ResponseEntity<?> addPurchase(@RequestBody AddPurchaseRequest request) {
+        try {
+            uz.kuponbot.kupon.dto.CashbackDto cashback = cashbackService.addPurchase(
+                request.getTelegramId(),
+                request.getPurchaseAmount(),
+                request.getDescription()
+            );
+            return ResponseEntity.ok(cashback);
+        } catch (Exception e) {
+            log.error("Error adding purchase: ", e);
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+    
+    @PostMapping("/cashback/use")
+    public ResponseEntity<?> useCashback(@RequestBody UseCashbackRequest request) {
+        try {
+            uz.kuponbot.kupon.dto.CashbackDto cashback = cashbackService.useCashback(
+                request.getTelegramId(),
+                request.getAmount(),
+                request.getDescription()
+            );
+            return ResponseEntity.ok(cashback);
+        } catch (Exception e) {
+            log.error("Error using cashback: ", e);
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+    
+    @PostMapping("/cashback/refund")
+    public ResponseEntity<?> refundCashback(@RequestBody RefundCashbackRequest request) {
+        try {
+            uz.kuponbot.kupon.dto.CashbackDto cashback = cashbackService.refundCashback(
+                request.getTelegramId(),
+                request.getAmount(),
+                request.getDescription()
+            );
+            return ResponseEntity.ok(cashback);
+        } catch (Exception e) {
+            log.error("Error refunding cashback: ", e);
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+    
+    @GetMapping("/cashback/user/{telegramId}")
+    public ResponseEntity<?> getUserCashbackHistory(@PathVariable Long telegramId) {
+        try {
+            List<uz.kuponbot.kupon.dto.CashbackDto> history = cashbackService.getUserCashbackHistory(telegramId);
+            return ResponseEntity.ok(history);
+        } catch (Exception e) {
+            log.error("Error getting user cashback history: ", e);
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+    
+    @GetMapping("/cashback/all-balances")
+    public ResponseEntity<?> getAllUsersCashbackBalance() {
+        try {
+            List<uz.kuponbot.kupon.service.CashbackService.UserCashbackBalance> balances = 
+                cashbackService.getAllUsersCashbackBalance();
+            return ResponseEntity.ok(balances);
+        } catch (Exception e) {
+            log.error("Error getting all users cashback balance: ", e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+    
+    @GetMapping("/cashback/all-history")
+    public ResponseEntity<?> getAllCashbackHistory() {
+        try {
+            List<uz.kuponbot.kupon.dto.CashbackDto> history = cashbackService.getAllCashbackHistory();
+            return ResponseEntity.ok(history);
+        } catch (Exception e) {
+            log.error("Error getting all cashback history: ", e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+    
+    @Data
+    public static class AddPurchaseRequest {
+        private Long telegramId;
+        private Integer purchaseAmount;
+        private String description;
+    }
+    
+    @Data
+    public static class UseCashbackRequest {
+        private Long telegramId;
+        private Integer amount;
+        private String description;
+    }
+    
+    @Data
+    public static class RefundCashbackRequest {
+        private Long telegramId;
+        private Integer amount;
+        private String description;
     }
 }
