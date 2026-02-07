@@ -161,8 +161,8 @@ public class NotificationService {
         }
     }
     
-    // TEST: Har kuni soat 10:05 UTC (15:05 Toshkent) da tug'ilgan kundan bir kun oldin tekshirish
-    @Scheduled(cron = "0 5 10 * * *")
+    // Har kuni soat 03:00 UTC (08:00 Toshkent) da tug'ilgan kundan bir kun oldin tekshirish
+    @Scheduled(cron = "0 0 3 * * *")
     public void checkBirthdayReminders() {
         log.info("Checking birthday reminders (1 day before)...");
         
@@ -187,8 +187,8 @@ public class NotificationService {
         }
     }
     
-    // TEST: Har kuni soat 10:10 UTC (15:10 Toshkent) da tug'ilgan kunlarni tekshirish va voucher yaratish
-    @Scheduled(cron = "0 10 10 * * *")
+    // Har kuni soat 03:00 UTC (08:00 Toshkent) da tug'ilgan kunlarni tekshirish va voucher yaratish
+    @Scheduled(cron = "0 0 3 * * *")
     public void checkBirthdays() {
         log.info("Checking user birthdays and creating vouchers...");
         
@@ -213,8 +213,8 @@ public class NotificationService {
         }
     }
     
-    // Har kuni soat 11:00 da voucher reminder va expiry tekshirish
-    @Scheduled(cron = "0 0 11 * * *")
+    // Har kuni soat 03:00 UTC (08:00 Toshkent) da voucher reminder va expiry tekshirish
+    @Scheduled(cron = "0 0 3 * * *")
     public void checkVoucherReminders() {
         log.info("Checking voucher reminders and expiry...");
         
